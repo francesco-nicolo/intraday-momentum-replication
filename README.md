@@ -125,6 +125,11 @@ build_pdf.py                    report.md -> report.pdf (pandoc + xelatex, setti
 benchmark_vol_targeted.py       the QuantConnect algorithm used for the benchmarks
 instrumentation/
   equity_moments.py             the five accumulators behind Appendix A, as a drop-in snippet
+MODIFICATIONS.md                what was run: the three changes to the authors' files, and the
+                                two constructed cells
+strategies/
+  strategy2_prime.py            S2', Strategy 2 without the VWAP entry filter
+  strategy4_prime.py            S4', Strategy 4 with the VWAP entry filter
 LICENSE                         MIT, for the code
 ```
 
@@ -163,10 +168,11 @@ The text of the two is the same.
 
 ## Where the raw data come from
 
-All 58 backtests were run on QuantConnect (LEAN, Free plan) in 2026. The strategy runs use the
-repository's code unchanged except for the slippage setting and, for the constructed cells S2′
-and S4′, the one-line change to the VWAP entry condition described in §4.1 of the report; the
-strategy files are therefore not duplicated here. The benchmark runs use
+All 58 backtests were run on QuantConnect (LEAN, Free plan) between 26 August and 3 September
+2026. The strategy files are the original authors' and are not duplicated here;
+[`MODIFICATIONS.md`](MODIFICATIONS.md) records the three changes made to them: the `loose` exit
+threshold, the slippage model and the `w_sum` accumulator, with the file and the line for each.
+The two constructed cells S2′ and S4′ are not their code and are in `strategies/`. The benchmark runs use
 `benchmark_vol_targeted.py`. The Free plan offers no API access, so the statistics were
 transcribed from the platform's results panel into the CSV files; the accumulator values that the
 cost decomposition (§2) and the Deflated Sharpe Ratio (Appendix A) depend on are printed by the
