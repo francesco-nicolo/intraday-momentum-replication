@@ -1,0 +1,32 @@
+---
+title: "Intraday momentum on SPY"
+subtitle: "An independent replication and cost analysis of `blackswan-quants/intraday-momentum`"
+author: "Francesco Nicolò"
+date: "September 2026"
+lang: en
+geometry: "a4paper,margin=2.4cm"
+fontsize: 10pt
+mainfont: "DejaVu Serif"
+sansfont: "DejaVu Sans"
+monofont: "DejaVu Sans Mono"
+fontfamily: fontspec
+colorlinks: true
+linkcolor: black
+urlcolor: blue
+toc: true
+toc-depth: 2
+numbersections: false
+header-includes:
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+  - \usepackage{etoolbox}
+  # tables: one step down in size, a little more air between columns and rows
+  - \AtBeginEnvironment{longtable}{\small}
+  - \setlength{\tabcolsep}{4pt}
+  - \renewcommand{\arraystretch}{1.18}
+  # booktabs rules with a bit more space around them
+  - \setlength{\aboverulesep}{0.5ex}
+  - \setlength{\belowrulesep}{0.6ex}
+  - \setlength{\LTpre}{1.2\baselineskip}
+  - \setlength{\LTpost}{1.0\baselineskip}
+---

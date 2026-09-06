@@ -1,0 +1,7 @@
+# optional clone of the original repository (see README)
+intraday-momentum/
+__pycache__/
+# temporary file of build_pdf.py, removed after every build
+tmp*.md
+# plain build of the report, regenerated on demand
+report_plain.pdf
