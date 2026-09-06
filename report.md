@@ -99,7 +99,6 @@ backtest output, preserved in the repository.
 
 Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all five rows; the PSR differs by 39.1 to 45.8 points (41.3 on average). See §1 and §7.
 
-
 Orders, drawdown and win rate match exactly on all five rows; Sharpe matches to within a
 thousandth, turnover to within a hundredth of a point. Return matches to within 0.29 percentage
 points (pp) in the worst case (S1) and 0.06pp in the best (S4), always on the low side, and the
@@ -208,7 +207,6 @@ the two that isolates it.
 | $w_{sum}$ | 7,171.26 | 68.89 | 6,024.57 |
 | $b^*$ (bps) | -0.282 | 218.486 | 2.178 |
 
-
 ## There is a signal
 
 The full-session benchmark, the one entering at 9:31 and reported in T2, loses 18.31%, with a
@@ -262,7 +260,6 @@ Same script, same leverage rule, one variable changed: the entry minute, and for
 | `pct_capped` | 66.1% | 66.1% | 66.1% |
 
 Controls: `lambda_avg` and `pct_capped` identical to the last digit on all three runs (same leverage path), $w_{sum}$ within 0.03%, $w_{sum}/(\text{turn}/100) \in [2,921.5;\ 2,921.9]$ vs. the 2,922 calendar days. The long and the short at 10:00 are mirror images in $\beta$ ($\pm 0.724$) and have average win and average loss swapped: they are the same exposure in the two directions.
-
 
 A natural objection is that the benchmark is long-only while the strategy also goes short, so the
 comparison is not matched on exposure. This too was measured rather than estimated: the same
@@ -347,7 +344,6 @@ $$1.400\% + 0.969\% = 2.369\% \qquad \text{vs.} \qquad 2.528\%$$
 
 Raw values from the instrumented run (Runtime Statistics, not recomputable from a CSV, since the Free plan offers no API access): `eq_n` = 2012, `avg_equity` = 87026.93, `drag_sum` = 1.550661e-01, `total_fees` = 9746.59. The `eq_n` count coincides with the NYSE sessions counted separately in the window: an independent check that the sampling is one point per session, with no gaps.
 
-
 The two mechanical effects therefore explain 94% of the loss, and the residual is $-0.159\%$ per
 year on the leveraged position, that is, $-0.088\%$ per year on the underlying.
 
@@ -411,7 +407,6 @@ $E_{t+1} = E_t\,(1 + g - (\Lambda-1)r)$.
 | 5.0% | 4.03% | 243.4% |
 
 Subtractive form, borrowed balance $(\Lambda-1) = 0.8056$. At the chosen rate (3.5%) hold24 makes 272.9% vs. 271.4% for S4′ tight. **Break-even rate: 3.58%.**
-
 
 At the declared convention, $r = 3.5\%$ (average T-bill rate over the window plus a retail-account
 spread), `hold24` makes 272.9% vs. 271.4%. The rate at which the two break even is 3.58%, that
@@ -613,9 +608,6 @@ Eight-year net profit (%). 40 rows, none used to calibrate the model: calibratio
 
 > $\sum_i w_i^2$ is not observable from the data collected; the expected term uses $w_{sum}^2/\text{orders}$, which by Cauchy-Schwarz is a lower bound for it, with equality if leverage never varied. The comparison is therefore one of order of magnitude, not a test.
 
-<!-- figures cited in §3.6: max |error| 0.185pp, mean |error| 0.038pp; residual in bps of terminal log wealth up to 1 bps: mean +0.41, sd 1.79; at 2 bps over the nine regular rows: mean +3.98, expected O(b^2) term (lower bound) 2.19; S1 tight at 2 bps: 39 bps -->
-
-
 Maximum error 0.185 percentage points (pp), **mean absolute error 0.038pp**. The order count stays
 constant across the five levels everywhere, so the invariance of §3.1 is not assumed but verified.
 
@@ -664,7 +656,6 @@ fourteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
 Over the fourteen strategy configurations $\bar w \in [1.8052;\ 1.8282]$, vs. `lambda_avg` $= 1.8056$. The two deviations (hold24 and the intraday benchmark) are discussed below.
 
 Ratio to LEAN's turnover: $w_{sum}/(\text{turnover}/100) \in [2,919.3;\ 2,924.2]$ on all eighteen rows, vs. 2,922 calendar days (2,012 NYSE sessions) in the window. LEAN averages the daily turnover over the samples of the same series it uses for the performance statistics, so this ratio counts those samples directly: eighteen rows say the series has one point per calendar day, and they say it without using any moment of the returns (Appendix A, §A.8).
-
 
 This is not an empirical regularity: it is an identity by construction. The strategies are
 exclusively intraday, so every position opens from zero and closes in full within the day; every
@@ -791,7 +782,6 @@ The paper (eq. 5 and pseudocode) specifies `tight`, so the README is the one tha
 cell exists in both versions, so the cells are eight. It is the axis that makes up the **rows** of
 T8 and T10.
 
-
 ## 4.2 The VWAP entry filter is additive
 
 Effect of the VWAP condition alone, in eight-year log return, holding the exit structure fixed:
@@ -804,7 +794,6 @@ Eight-year log return: $\ln(1+R_A) - \ln(1+R_B)$, that is, the logarithm of the 
 |:-----------------|-----------------------------------:|---------------------------------:|---------------:|
 | `tight` | +0.03384 | +0.03339 | -0.00044 |
 | `loose` | +0.02803 | +0.02850 | +0.00047 |
-
 
 The interaction is of order $5\cdot10^{-4}$, that is, 1.3% of the main effect under `tight` and
 1.7% under `loose`, and it **changes sign** between the two exit variants: noise, not an effect.
@@ -843,7 +832,6 @@ S0 = 30′ simple; S1 = 30/5 without gate; S3 = 30/5 with gate $N=4$. S1 and S3 
 
 Orders: S0 3,594, S1 4,900, S3 3,550 (`tight`).
 
-
 **The cadence is costly under both thresholds.** Moving from a check every 30 minutes to one every
 5 brings final wealth to 93.7% of that of S0 under `tight` and 95.3% under `loose`, that is,
 $-0.06508$ and $-0.04853$ in log return, which are the values reported in the table, and brings
@@ -880,7 +868,6 @@ Possible readings, each at **a single level** of the other filter:
 
 - **effect of the EMA on the package** (col. 2 minus col. 1), measured with the VWAP absent: -0.04604 (`tight`) and -0.05262 (`loose`). Negative interaction, so the EMA and the package are **substitutes**
 - **effect of the VWAP on the package** (col. 3 minus col. 2), measured with the EMA present: -0.00044 and +0.00047. Zero interaction, so **additive**
-
 
 The second and third columns are identical to each other and different from the first. That is:
 **adding the VWAP filter does not change the value of the exit package; adding the EMA filter
@@ -999,7 +986,6 @@ Slippage level at which `tight` and `loose` break even, for a fixed strategy.
 
 Negative crossover = `loose` already wins at 0 bps and the gap widens. On S3 and S4 the sign reverses at 0 bps, but `loose` has a lower $w_{sum}$ and therefore decays more slowly. Whether the overtake falls at a realistic level of slippage is discussed below.
 
-
 The crossover falls at **0.209 bps** on S3 and **0.357 bps** on S4. Whether that is inside the
 range of realistic execution costs rests on an assumption this report does not measure: 0.25 to
 0.5 bps per fill is used throughout as a working range for a liquid ETF traded at the market, not
@@ -1027,7 +1013,6 @@ There is a single exception, and it is worth setting out.
 | loose | Sharpe | yes | S2 > S4 > S3 > S0 > S1 |
 
 The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The hypothesis "turnover, not the number of trades, predicts the drag" cannot be tested on these data: by the identity of T7 the two are proportional, so there is no variance to explain.
-
 
 Under `tight`, the ranking by return is S4 > S3 > S2 > S0 > S1 at every level, from 0 to 2 bps.
 Under `loose` it is S2 > S4 > S3 > S0 > S1, again unchanged. For Sharpe the same holds across the
@@ -1080,9 +1065,6 @@ against zero:
 
 Sessions with at least one trade, 1,197 in total; one-sample $t$-test of the mean against zero, two-sided. The same computation on S2 and S3 returns the same ordering, with Friday at $p = 0.0013$ and $p = 0.0007$ respectively.
 
-<!-- figures cited in §5.1: ordering Fri > Wed > Thu > Tue > Mon; Friday p 0.00109, x5 (Bonferroni) 0.0054; Monday p 0.44; cumulative from the trade files 227.331% / 252.214% / 259.235% -->
-
-
 The ordering reproduces the paper's exactly. Friday's mean carries $p = 0.0011$ on its own and
 0.0054 once multiplied by the five groups the maximum was selected from, so it stands at the 1%
 level under the most conservative correction available; Monday is indistinguishable from zero
@@ -1113,7 +1095,6 @@ entry filters with the persistence-based exit structure at the same time.
 | S4 tight | 259.2 | 208.2 | 164.4 | 2.088 | 8.4% | 1.036 |
 
 The 0.25 and 0.5 bps columns of S2′ and S4′ are **predicted** by the model of T6, not measured: for these two cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
-
 
 At 0 and at 0.25 bps the leading configuration is S4′ `tight`. At 0.5 bps S4′ `loose` takes the
 lead, since it has a lower $w_{sum}$ and therefore decays more slowly, and the top three close to

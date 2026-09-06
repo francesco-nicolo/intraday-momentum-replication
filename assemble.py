@@ -225,6 +225,18 @@ def fit_table_widths(text):
     return "\n".join(out)
 
 
+def strip_comments(text):
+    """Drop the HTML comment lines before writing the report.
+
+    build_tables.py records, next to some tables, a comment with the figures the prose quotes, so
+    that the text can be checked against the script without rerunning anything. They belong in
+    tables.md; in report.md they are a liability, because a markdown renderer is free to print an
+    HTML comment as ordinary text, and one of them did.
+    """
+    text = re.sub(r"(?ms)^[ \t]*<!--.*?-->[ \t]*\n", "", text)
+    return re.sub(r"\n{3,}", "\n\n", text)
+
+
 def refresh_readme(tables):
     """Replace every <!-- table:Tn --> ... <!-- /table --> block in README.md with the current table."""
     path = os.path.join(BASE, README)
@@ -268,7 +280,7 @@ def main():
     parts.append(substitute(appendix, tables, used, missing).rstrip())
     parts.append("")
     parts.append(read(REFERENCES).rstrip())
-    out = fit_table_widths("\n".join(parts) + "\n")
+    out = strip_comments(fit_table_widths("\n".join(parts) + "\n"))
 
     with io.open(os.path.join(BASE, OUTPUT), "w", encoding="utf-8") as f:
         f.write(out)
