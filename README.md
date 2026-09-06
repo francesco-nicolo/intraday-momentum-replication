@@ -91,16 +91,12 @@ and does not dominate Strategy 4 on drawdown (§6).
 The 0.25 and 0.5 bps columns of S2′ and S4′ are **predicted** by the model of T6, not measured: for these two cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
 <!-- /table -->
 
-## A note on tone
+## What this report is
 
-This is a replication study, not a review. Where the report finds that the paper, the README and
-the code describe things differently, it says so and shows the measurement; where it cannot
-reproduce a number, it says why. Two of the findings (a platform statistic that no longer
-reproduces, and a comparison that turns out to be confounded on two axes) could read as
-criticism of the original authors. They are not meant that way, and the report takes care to
-separate what the authors could control from what they could not. The original work made this
-analysis possible by publishing its code and its result files, which is the reason it could be
-replicated at all.
+A replication study. Where the paper, the README and the code describe the same thing
+differently, the report records the difference and shows the measurement; where a number does not
+reproduce, it says why. The original work made the analysis possible by publishing its code and
+its result files, which is why it could be replicated at all.
 
 ## Repository layout
 
