@@ -7,10 +7,9 @@ statistic, and one is a detail of the committed source, stated for completeness.
 **1. The Probabilistic Sharpe Ratio does not reproduce.** The paper reports a PSR of 83.4% for
 S4, which is exactly what the authors' own `stats` file contains (83.439%). Re-running the same
 code today returns **44.342%**, and this is not an isolated case: the same difference, 39 to 46
-points, appears on all five strategies (T1). The paper transcribes its own output correctly, so
-this is not something the authors could have controlled, and it is the only platform statistic
-that does not come back after a lapse of time on the same code, since orders, Sharpe, drawdown,
-win rate and turnover all agree to within rounding.
+points, appears on all five strategies (T1). The paper transcribes its own output correctly, and
+this is the only platform statistic that does not come back after a lapse of time on the same
+code, since orders, Sharpe, drawdown, win rate and turnover all agree to within rounding.
 
 What changed is the platform, not the original work.
 Two things follow, and they point in opposite directions. Today's value is well defined and can be

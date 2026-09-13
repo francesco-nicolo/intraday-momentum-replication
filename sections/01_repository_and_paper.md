@@ -53,8 +53,8 @@ strategy. The code in the repository does today what it did for the authors.
 
 **One exception, and only one**: the Probabilistic Sharpe Ratio does not reproduce on any of the
 five rows, with a gap of between 39.1 and 45.8 percentage points, 41.3 on average. This is not a
-code reproducibility problem, and it is not something the authors could have controlled: it is a
-platform statistic that has not remained stable over time. The discussion is
+code reproducibility problem: it is a platform statistic that has not remained stable over
+time. The discussion is
 in §7 and in Appendix A, where it becomes the reason for computing the Deflated Sharpe Ratio from
 the raw moments rather than citing it.
 

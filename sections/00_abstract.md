@@ -33,5 +33,5 @@ closes with 3.4% more capital over eight years, about 0.4% per year, on the stre
 26 trades the condition blocks, at the price of a slightly deeper drawdown; whether that lead
 survives outside this sample is not tested here. Corrected for selection across fourteen trials
 with the Deflated Sharpe Ratio, S4′ remains distinguishable from search noise, although the test
-is against a zero edge, not against Strategy 4. That check matters because the one significance
+is against a null of zero edge, not against Strategy 4. That check matters because the one significance
 statistic the paper reports, QuantConnect's PSR, no longer reproduces on the platform today.

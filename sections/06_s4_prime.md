@@ -27,8 +27,8 @@ about 0.4% per year, and the whole of it comes from the 22 to 26 trades the entr
 (§4.2). One caveat cuts against the result, because the table shows it: **S4′ does not dominate S4
 in the Pareto sense.** Return, Sharpe and break-even improve; the drawdown worsens, 9.0% vs. 8.4%.
 The dominance the paper reports for S4 cannot be repeated for S4′ here. The Deflated Sharpe Ratio
-of Appendix A, which finds S4′ distinguishable from selection noise, tests it against a zero edge,
-not against S4: whether the margin between the two survives outside this sample is a question
+of Appendix A, which finds S4′ distinguishable from selection noise, tests it against a null of
+zero edge, not against S4: whether the margin between the two survives outside this sample is a question
 these data do not answer (§8). S4′ is best read as S4 plus a small increment of consistent sign,
 not as a different strategy.
 
