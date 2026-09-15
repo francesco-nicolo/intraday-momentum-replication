@@ -179,9 +179,9 @@ cost decomposition (§2) and the Deflated Sharpe Ratio (Appendix A) depend on ar
 algorithms as runtime statistics and are recorded in `build_tables.py` and in the benchmark CSV.
 `instrumentation/equity_moments.py` is the snippet that produced the Appendix A accumulators.
 
-The QuantConnect platform has changed since the paper was published: one reported statistic
-(the Probabilistic Sharpe Ratio) no longer reproduces on the same code, while every other
-statistic does. The report discusses this in §7 and Appendix A.
+One statistic reported by the platform, the Probabilistic Sharpe Ratio, no longer reproduces on
+the same code and over the same window, while every other statistic does. The report discusses
+this in §7 and Appendix A.
 
 ## Open items
 
@@ -194,6 +194,11 @@ each of these would need new runs or new instrumentation.
 - **Uncertainty on the S4′ lead.** The advantage of S4′ over Strategy 4 rests on the 22 to 26
   trades the VWAP entry condition blocks. A bootstrap over those trades would put an interval
   around the +0.033 of log return (§6).
+- **Autocorrelation of the daily returns.** The $\sqrt{n-1}$ factor in the Deflated Sharpe Ratio
+  assumes the daily returns are independent; residual autocorrelation would reduce the effective
+  sample size and lower the figure. One more accumulator alongside the five already collected
+  gives the lag-1 coefficient, and two more extend it to a Ljung-Box on the first three lags: one
+  backtest (§A.10).
 - **Holding-time distribution.** The statement that the `tight` exit threshold typically binds
   early in the life of a position is a geometric argument, not a measurement; a histogram of
   holding times would settle it (§4.1, §8).
