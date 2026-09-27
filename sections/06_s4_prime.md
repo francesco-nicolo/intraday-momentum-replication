@@ -1,8 +1,9 @@
 # §6. S4′: a configuration the repository does not include
 
-§4 decomposes the repository's design and finds that the VWAP entry filter is additive edge,
-separate from everything else. If it is, the best configuration is not S4: it is S4 with that
-condition added, S4′, and it was never run in the repository because no cell crosses all three
+§4 decomposes the repository's design and finds that the VWAP entry filter adds edge that the
+exit package leaves intact and that, with the package in place, is larger when the EMA filter is
+present. If so, the best
+configuration is not S4: it is S4 with that condition added, S4′, and it was never run in the repository because no cell crosses all three
 entry filters with the persistence-based exit structure at the same time.
 
 [Table T13]
@@ -11,7 +12,7 @@ At 0 and at 0.25 bps the leading configuration is S4′ `tight`. At 0.5 bps S4�
 lead, since it has a lower $w_{sum}$ and therefore decays more slowly, and the top three close to
 within two percentage points: 176.7 vs. 174.8 for S4′ `tight` and 174.6 for S2 `loose`. In one
 form or the other S4′ is therefore first at all three levels, but it is not always the same
-variant, and the highest break-even of the fourteen configurations does not belong to S4′ `tight`
+variant, and the highest break-even of the sixteen configurations does not belong to S4′ `tight`
 (2.178 bps) but to S4′ `loose`: **2.462 bps**.
 
 Two questions follow, and they are separate. Among the cells that are in the repository, the best
@@ -32,7 +33,7 @@ zero edge, not against S4: whether the margin between the two survives outside t
 these data do not answer (§8). S4′ is best read as S4 plus a small increment of consistent sign,
 not as a different strategy.
 
-That the 0.25 and 0.5 bps columns of the two constructed cells are predicted by the model of §3
+That the 0.25 and 0.5 bps columns of the S4′ rows are predicted by the model of §3
 rather than measured is consistent with the rest of the method, since the cost model was validated
 on forty independent rows; but it is the only part of the table that does not come from a direct
 backtest, and §8 records it as such.
@@ -40,7 +41,7 @@ backtest, and §8 records it as such.
 The register in which this result is presented matters as much as the result itself. It is not
 "this analysis beat the repository": the condition that separates S4′ from S4 is already written
 in the repository, in S2, and crossing it with the exit structure of S4 required no new idea, only
-a cell of the factorial that had not been run. This is why S2′ and S4′ stay in a separate table and are labeled as
+a cell of the factorial that had not been run. This is why S2′, S3′ and S4′ stay in a separate table and are labeled as
 constructions of this report rather than as repository code. The distinction between "what the
 repository measured" and "what the factorial implies" is the point of the section, not a
 formatting detail.

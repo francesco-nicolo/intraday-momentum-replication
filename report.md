@@ -5,7 +5,7 @@
 `blackswan-quants/intraday-momentum` implements five variants of an intraday momentum strategy on
 SPY and presents them as a progression that culminates in Strategy 4, which the paper describes as
 Pareto-dominant. This report re-runs the five published backtests, checks them against the
-authors' own result files, adds fifty-three more, and reaches four conclusions.
+authors' own result files, adds fifty-five more, and reaches four conclusions.
 
 First, there is a signal. A benchmark with no signal at all, on the same instrument, with the same
 leverage rule and the same trading window, loses 36.1% over the period in which the strategy gains
@@ -14,29 +14,34 @@ benchmark's entry time with the strategy's own removes a further 17.8 points fro
 the opening half-hour, which the thirty-minute cadence excludes by construction, is worth that much
 to a passive leveraged position in this sample. The edge is more sensitive to execution costs than
 its size suggests, however. Reconstructing the effect of transaction costs in closed form from a
-single backtest, the 271.4% falls to zero at 2.2 basis points of slippage per trade, while
+single backtest, the 271.4% falls to zero at 2.2 basis points of slippage per trade beyond the quoted spread, while
 leveraged buy-and-hold at the same leverage survives up to 218.
 
 Second, the comparison on raw return is the less informative one. The strategy's 271% sits below
 the 350% of leveraged buy-and-hold, but the gap is about the size of the margin interest that the
 backtest does not charge, so it does not support an argument in either direction. The rest of the
-comparison does hold: a beta of -0.05 and a quarter of the drawdown, 9.0% vs. 40.2%, because a
-strategy that is flat every night does not touch an equity premium that, over this window, lives
-almost entirely overnight.
+comparison does hold: a beta of -0.05 and a quarter of the drawdown, 9.0% vs. 40.2%. Both come
+from the signal, not from the schedule: the same leveraged position held without a signal, and
+flat every night as well, has a beta of 0.80 and a drawdown of 40.5%. What being flat every night
+explains is the missing equity premium, which over this window accrues almost entirely overnight.
 
-Third, the persistence gate does not appear to be a standalone source of edge. It offsets a cost
-that the five-minute exit check introduces, and the cell that separates the two effects was already
-in the repository, in Strategy 1, although it had not been used for that purpose.
+Third, the two mechanisms that Strategy 4 combines are not independent, as the paper's Hypothesis 1
+assumes: they are partial substitutes. Separating the steps of the ladder, which the repository's
+own Strategy 1 allows, shows that the five-minute exit check costs return and the persistence gate
+more than recovers it; but the value of that exit package falls by about 0.05 in log wealth when the
+EMA entry filter is present, under both exit thresholds. Strategy 4 still dominates Strategies 2 and
+3, as the paper reports; the reason it gives does not hold.
 
-Fourth, the best of the fourteen configurations examined is not in the repository, but it is one
+Fourth, the best of the sixteen configurations examined is not in the repository, but it is one
 line away from Strategy 4 and its lead is small. Adding to Strategy 4 an entry condition that is
 present in the code of Strategy 2 but absent from both published descriptions gives S4′, which
 closes with 3.4% more capital over eight years, about 0.4% per year, on the strength of the 22 to
 26 trades the condition blocks, at the price of a slightly deeper drawdown; whether that lead
-survives outside this sample is not tested here. Corrected for selection across fourteen trials
+survives outside this sample is not tested here. Corrected for selection across sixteen trials
 with the Deflated Sharpe Ratio, S4′ remains distinguishable from search noise, although the test
 is against a null of zero edge, not against Strategy 4. That check matters because the one significance
-statistic the paper reports, QuantConnect's PSR, no longer reproduces on the platform today.
+statistic the paper reports, QuantConnect's PSR, has changed definition on the platform since the
+authors' runs, and the same code now returns about forty points less.
 
 # §1. The repository and the paper
 
@@ -97,20 +102,30 @@ backtest output, preserved in the repository.
 | S4 | authors | 259.235% | 1.036 | 8.4% | 40% | 3388 | 83.439% | 209.40% |
 | | reproduced | **259.177%** | **1.036** | **8.4%** | **40%** | **3388** | **44.342%** | **209.40%** |
 
-Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all five rows; the PSR differs by 39.1 to 45.8 points (41.3 on average). See §1 and §7.
+Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all five rows; the PSR differs by 39.1 to 45.8 points (41.3 on average), because the platform now subtracts the risk-free rate inside it and in March it did not. See §1 and §7.
 
-Orders, drawdown and win rate match exactly on all five rows; Sharpe matches to within a
-thousandth, turnover to within a hundredth of a point. Return matches to within 0.29 percentage
-points (pp) in the worst case (S1) and 0.06pp in the best (S4), always on the low side, and the
-gap has an identifiable cause: the commissions of the new runs are higher by between 0.24% and
-0.51% **at exactly the same order count**, so the difference lies in the fill prices, not in the
-strategy. The code in the repository does today what it did for the authors.
+Orders, drawdown and win rate match exactly on all five rows; Sharpe matches to within a thousandth,
+turnover to within a hundredth of a point. Return matches to within 0.29 percentage points (pp) in
+the worst case (S1) and 0.06pp in the best (S4), always on the low side. The gap has an identifiable
+cause: at exactly the same order count, the commissions of the new runs are higher by between 0.24%
+and 0.51%, so the difference lies in the fill prices, not in the strategy. The likely source is the
+dividend adjustment. LEAN fills on dividend-adjusted prices, and the adjustment is computed as of
+the day the backtest runs, so every dividend paid between two runs lowers the whole price history
+seen by the later one, by about a quarter of a percent for SPY. Lower prices buy more shares for the
+same notional, and the per-share commission, with the drag it puts on return, rises by the same
+fraction. SPY went ex-dividend twice between the authors' runs and these, on 20 March and
+18 June 2026. The runs of 18 and 20 March (S0 to S3), consistent with data that did not yet reflect the
+first of the two, differ from the reproduction by 0.47% to 0.51%, two dividends; S4, run on 23
+March, differs by 0.24%, one. This is inferred from the dates and the magnitudes, not verified
+against the platform's price files. The code in the repository does today what it did for the
+authors.
 
 **One exception, and only one**: the Probabilistic Sharpe Ratio does not reproduce on any of the
 five rows, with a gap of between 39.1 and 45.8 percentage points, 41.3 on average. This is not a
-code reproducibility problem: it is a platform statistic that has not remained stable over
-time. The discussion is
-in §7 and in Appendix A, where it becomes the reason for computing the Deflated Sharpe Ratio from
+code reproducibility problem: the platform has changed how it computes the statistic. LEAN's own
+routine returns the authors' values when the Sharpe ratio inside it is taken before the risk-free
+rate, and today's when the rate is subtracted, to within 0.3 points on all ten figures (§7). The
+discussion is in §7 and in Appendix A, where it becomes the reason for computing the Deflated Sharpe Ratio from
 the raw moments rather than citing it.
 
 Beyond that, the issue this report takes up is not the reproducibility of the numbers. It is what
@@ -147,7 +162,8 @@ $-53\%$, so in percentage points the residuals would not be comparable across ro
 
 **Costs.** The horizontal axis of every cost chart and cost table is the **additional** slippage:
 the 0 bps level is not a backtest without costs, it is a backtest that pays Interactive Brokers
-commissions in full and nothing else. The risk-free rate is set at $r_f = 2\%$ and the margin
+commissions in full and the quoted bid-ask spread, since LEAN fills buys at the ask and sells at the
+bid, and nothing else. The risk-free rate is set at $r_f = 2\%$ and the margin
 financing rate at 3.5%, both conventions declared in advance and discussed where they are used.
 
 # §2. What the strategy is measured against
@@ -155,30 +171,35 @@ financing rate at 3.5%, both conventions declared in advance and discussed where
 A return of 271% over eight years means nothing until one says what it is measured against. The
 paper does adopt a point of comparison, SPY bought and held at 166.4%, but without leverage, while
 the strategy runs at an average leverage of 1.81: the comparison is between a leveraged portfolio
-and one that is not. The Sharpe ratio attached to that benchmark, 0.47, also does not follow from
-the numbers reported with it: 166.4% over eight years is 13.0% per year, which with the 16%
-volatility stated on the same line gives 0.69. The quoted value appears to be the long-run
-historical figure for equities rather than the one for this window, so the "nearly double" that
-the paper states for the Sharpe of S0 corresponds to a factor of about 1.2 rather than 1.8. This
-section builds two benchmarks in its place, each designed to isolate one thing, before going into
-the construction itself. They are what determines which questions are worth asking afterwards.
+and one that is not. The Sharpe ratio attached to that benchmark, 0.47, is on the same footing as
+the strategy's: under LEAN's convention (Appendix A, §A.8), reading the 16% volatility stated on
+the same line as the platform's annualized figure, 166.4% over eight years gives exactly 0.47 at
+the platform's risk-free rate of about 2.7%. The "nearly double" that the paper states for S0,
+0.835 against 0.47, is therefore a like-for-like comparison. The textbook formula,
+$(\text{CAR}-r_f)/\sigma$ at the report's $r_f = 2\%$, would give 0.69 for the benchmark, but also
+about 1.4 for S0: applied consistently, either convention returns a ratio between 1.8 and 2.0.
+What the comparison does not match is leverage. This section builds two benchmarks in its place,
+each designed to isolate one thing, before going into the construction itself. They are what
+determines which questions are worth asking afterwards.
 
 Both benchmarks share the strategy's leverage rule, $\Lambda = \min(2,\ 0.02/\sigma_{14g})$, and
 differ only in what they are meant to isolate. Leverage is matched because it is a free parameter
 that anyone can raise: comparing a portfolio at leverage 1.81 with one at leverage 1 measures the
 signal and the decision to take more risk together, and does not separate the two. And the whole
 rule is matched, not just the average multiplier, because the rule has effects of its own on
-compounded return. Further below we measure that volatility targeting costs 9% less than a fixed
-leverage of the same mean, and that advantage belongs to the null hypothesis, not to the signal.
+compounded return. Volatility targeting cuts leverage on the most volatile days, where leverage
+costs most, so it should pay less drag than a fixed leverage of the same mean; whatever that
+advantage is worth, it belongs to the null hypothesis, not to the signal.
 
 One thing about that rule changes how it needs to be understood. On this window and with the repository's
 parameters, $\Lambda$ is **at the cap of 2 on 66.1% of days**, with an average of 1.8056: for two
 thirds of the time there is no targeting at all, only fixed leverage at the maximum allowed. The
 figure comes from the instrumented benchmark, which replicates the rule without a signal, but it
-does not depend on the benchmark: the average weight per fill of the fourteen strategy
+does not depend on the benchmark: the average weight per fill of the sixteen strategy
 configurations, $\bar w \in [1.805;\ 1.828]$ in §3.7, is the same average leverage read off their
-own orders. The cap is not incidental: the paper's own §2.3 mentions the insufficient buying power
-errors that motivated it.
+own orders. The cap is not incidental: the paper sets it at 2× for consistency with Zarattini et
+al. and notes (§2.3) that without it, leverage in quiet periods exceeded the available margin and
+triggered insufficient buying power errors.
 
 The first benchmark, `intraday`, is long SPY from 9:31 to 15:58 and closes every evening, with no
 signal at all: it is the strategy stripped of nothing but its entry and exit logic. The second,
@@ -269,8 +290,9 @@ average win and average loss swapped digit for digit (0.99% / $-0.83\%$ vs. 0.83
 $-0.99\%$), so the two rows measure the same exposure in the two directions.
 
 **Blind exposure loses in both directions**, and the gap between the two is 5.3 points over eight
-years. That, and only that, is the drift term of the window; the rest, more than thirty points and
-common to both, is variance drag and commissions, which depend on $\Lambda^2$ and on the number of
+years. That gap, and only that, comes from the drift of the window, which enters the two runs with
+opposite signs, so the drift itself is worth about half of it; the rest, more than thirty points and
+common to both, is variance drag, commissions and the bid-ask spread, which depend on $\Lambda^2$ and on the number of
 fills and do not distinguish the sign of the position. The asymmetry exists and favors the short
 side, not the long side as one would have expected, but it is an order of magnitude too small to
 make either direction a sensible choice. There is no right side to be on without a signal: it is
@@ -301,16 +323,22 @@ and emitted via `set_runtime_statistic`, the only channel on the Free plan that 
 the log quota. The number of samples comes back as 2,012, exactly the independent count of NYSE
 sessions in the window, a free check that the sampling is one point per session with no gaps.
 
-**Commissions: 9,746.60 dollars** on an account that starts at 100,000 and closes at 81,691, with
+**Commissions: 9,746.59 dollars** on an account that starts at 100,000 and closes at 81,691, with
 3,997 orders over eight years. The right denominator is not the initial capital. The Interactive
-Brokers fee model is per share, and the shares in a trade are worth $\Lambda E/P$: the commission
-per trade is $c\,\Lambda E/P$, and relative to equity it is $c\,\Lambda/P$, a quantity that does
-not depend on the size of the account. Total commissions are then proportional to the **integral
-of equity over time**, not to the starting capital, and dividing by 100,000 would overstate the
-rate, because the account shrank over the whole window. With an average equity of 87,027 over the
-2,012 sessions the integral is $\int_0^8 E_t\,dt = 696{,}215$, and the result is
+Brokers fee model is per share, and a trade buys $\Lambda E/P$ shares: the commission is
+$c\,\Lambda E/P$, and relative to equity it is $f = c\,\Lambda/P$, a quantity that does not depend
+on the size of the account. Summed over the sessions, the dollars paid are
+$\sum_t f_t E_t \approx f \sum_t E_t$: they are proportional to the **integral of equity over
+time**, not to the starting capital, and the annual rate is total commissions divided by that
+integral. Dividing by 100,000 instead would understate it, because the account shrank over the whole
+window. The run records the equity at every session close, 2,012 values with an average of 87,027,
+so the integral is a sum with one step per session,
+$\int_0^8 E_t\,dt \approx 8\,\bar E = 696{,}215$, and
 
-$$\phi = \frac{\text{commissions}}{\text{years}\cdot\bar E} = \frac{9{,}746.59}{8 \cdot 87{,}027} = 1.400\%\ \text{per year}$$
+$$\phi = \frac{\text{commissions}}{\text{years}\cdot\bar E} = \frac{9{,}746.59}{8 \cdot 87{,}027} = 1.400\%\text{ per year}$$
+
+The step $f_t \approx f$ treats the rate as constant; strictly, the ratio gives its average weighted
+by equity.
 
 **Leverage drag.** Holding $\Lambda$ times the exposure does not multiply the compounded return by
 $\Lambda$. Over a single session the log return of the leveraged position is
@@ -324,6 +352,11 @@ $$\tfrac12\,\Lambda_t(\Lambda_t-1)\,r_t^2 \;=\; \tfrac12\,\frac{\Lambda_t-1}{\La
 and this is the form accumulated session by session inside the run. The sum built this way never
 passes through `ann_std`, so it does not inherit LEAN's annualization convention (Appendix A,
 §A.8). Divided by the number of years, it is 0.969% per year.
+The accumulator adds the term only on sessions with $\Lambda_t > 1$: the guard is there to skip
+sessions without a position, where $\Lambda_t = 0$, but it also drops the few with
+$0 < \Lambda_t < 1$, when the trailing volatility exceeds 2% a day. On those the term is negative,
+since a leverage below one recovers part of the variance instead of paying it, so the 0.969%
+slightly overstates the drag.
 
 **The arithmetic.** The two drags are logarithmic and add to each other, so they must be compared
 with the log CAR, $-\ln(1+R)/8 = 2.528\%$, and not with the simple CAR; mixing the two scales is
@@ -344,42 +377,40 @@ $$1.400\% + 0.969\% = 2.369\% \qquad \text{vs.} \qquad 2.528\%$$
 
 Raw values from the instrumented run (Runtime Statistics, not recomputable from a CSV, since the Free plan offers no API access): `eq_n` = 2012, `avg_equity` = 87026.93, `drag_sum` = 1.550661e-01, `total_fees` = 9746.59. The `eq_n` count coincides with the NYSE sessions counted separately in the window: an independent check that the sampling is one point per session, with no gaps.
 
-The two mechanical effects therefore explain 94% of the loss, and the residual is $-0.159\%$ per
-year on the leveraged position, that is, $-0.088\%$ per year on the underlying.
+The two mechanical effects therefore explain 94% of the loss. What remains, $-0.159\%$ per year, is
+the compounded return of the position itself once commissions and the extra cost of leverage are
+removed; divided by the average leverage it is about $-0.09\%$ per year for an unleveraged position.
+The division is only approximate, because leverage changes from day to day and is not independent of
+the returns it multiplies, so the figure is an order of magnitude and nothing below rests on its
+second digit.
 
-> The second figure divides the first by $\bar\Lambda$, which treats leverage as a constant. It
-> is not one: $\Lambda_t$ is set from the trailing volatility of the same series whose returns it
-> multiplies, so the exact conversion carries a covariance term that the division drops,
-> $E[\Lambda_t x_t]/\bar\Lambda = E[x_t] + \operatorname{Cov}(\Lambda_t, x_t)/\bar\Lambda$. That
-> the two are not independent is measured two paragraphs below, on the second moment: cutting
-> $\Lambda_t$ exactly when $r_t^2$ is large is what makes the drag 9% lower than at a constant
-> leverage of the same mean. The $-0.088\%$ is therefore the order of magnitude of the unleveraged
-> residual, not an identity, and nothing in the section rests on its second digit.
+In words: in this window, anyone long SPY from 9:31 to 15:58 every day, without leverage and
+commissions but paying the bid-ask spread, would have ended roughly flat after eight years. Trading
+hours, on their own, earned about nothing: the 13.0% a year that SPY delivered (166.4%, paper, §3.2)
+accrued almost entirely overnight, the segment this benchmark does not hold, in line with a
+well-documented pattern in US equities (Cooper, Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+This is why the benchmark loses: with nothing to earn during the session, what it pays in
+commissions and leverage drag is a net loss, and whatever the strategy earns over it has to come
+from its signal.
 
-That residual is the **compounded** return of a passive, unleveraged intraday position: it says
-that anyone long from 9:31 to 15:58 for eight years, without leverage and without costs, would
-have ended flat to within a tenth of a point per year. It does not say that the arithmetic daily
-mean is zero; that mean is positive, and it is consumed by its own variance drag until the
-compounded return reaches zero. The distinction matters because the session is not homogeneous:
-"SPY does not drift intraday" does not hold segment by segment; "a passive position over the
-whole session ends flat" is what was measured. The return SPY actually delivered
-over the window, 166.4% (paper, §3.2), that is, 13.0% per year, therefore lives almost entirely
-overnight, the segment this comparison does not measure; that the equity premium of US stocks
-accrues overnight rather than during trading hours is documented well beyond this window (Cooper,
-Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+"Flat" refers to the compounded return: the arithmetic mean of the daily returns is positive, but
+compounding subtracts about half their variance.
 
-One last observation on the drag, which is a fact about the sizing rule and not about the
-benchmark. At constant leverage, with $\bar\Lambda = 1.8056$, the formula would give 1.07% per
-year; measured, it gives 0.969%, 9% less. The difference is the leverage rule at work: $\Lambda_t$
-is cut precisely on the days when $r_t^2$ is large, and the drag weights the squares. **Volatility
-targeting costs less than a fixed leverage of the same mean**, and the margin is measurable.
+> Averaging $\ln(1+r) \approx r - \tfrac12 r^2$ gives
+> $E[\ln(1+r)] \approx E[r] - \tfrac12 E[r^2] = E[r] - \tfrac12(\sigma^2 + E[r]^2) \approx E[r] - \tfrac12\sigma^2$,
+> since $E[r]^2$ is several orders of magnitude smaller than $\sigma^2$ for daily returns.
 
 From this follows the property that makes the strategy interesting. A strategy that goes flat
-every evening does not touch the equity premium by construction, and indeed it has
-$\beta = -0.053$. It does not participate in the market: it extracts return from a window whose
-compounded return is zero. The zero beta is not the result of an optimization; it is a consequence
-of the schedule. The schedule has five exceptions in eight years, all on half-day sessions where
-the 15:58 liquidation branch is never reached (§7, item 3); §8 bounds what they are worth.
+every evening does not touch the equity premium by construction: it extracts return from a window
+whose compounded return is zero. Its beta of $-0.053$ has a different origin, and the benchmark
+shows which: the same schedule held long, with no signal, has $\beta = 0.800$. Being flat overnight
+removes the equity premium, not the exposure to the day's move. What removes that is the signal,
+which is long on upward breakouts and short on downward ones and splits its P&L evenly between the
+two sides (50.0% and 50.0% on S4, above), so that its daily return depends on the size of the
+intraday move more than on its sign. The zero beta is not the result of an optimization; it is a
+consequence of the symmetry of the signal. The schedule, for its part, has five exceptions in
+eight years, all on half-day sessions where the 15:58 liquidation branch is never reached (§7,
+item 3); §8 bounds what they are worth.
 
 ## The opportunity cost
 
@@ -389,10 +420,18 @@ immune to costs: its break-even is at 218 bps of slippage vs. the strategy's 2.2
 magnitude smaller. Under any cost assumption the gap widens rather than closes.
 
 One correction, however, works in the opposite direction. LEAN does not charge interest on the
-borrowed balance, and with $\Lambda_{avg} = 1.8056$ `hold24` stays borrowed for 0.8056 units of
-equity every night for eight years. The correction is subtractive on the CAR, because interest
-accrues on the balance at the start of the period and not on the realized return:
-$E_{t+1} = E_t\,(1 + g - (\Lambda-1)r)$.
+borrowed balance, and with an average leverage $\bar\Lambda = 1.8056$ `hold24` borrows 0.8056 units
+of equity every night for eight years. A broker would charge interest on that balance, and the
+interest depends on how much is borrowed, not on how the market moves. Write $E_t$ for the equity at
+the start of year $t$, $g = 20.702\%$ for the annual return of `hold24` as backtested (its CAR,
+before any financing cost) and $r$ for the annual financing rate. The borrowed balance is
+$(\bar\Lambda-1)E_t$, the interest paid in the year is $(\bar\Lambda-1)\,r\,E_t$, and
+
+$$E_{t+1} = E_t\,\big(1 + g - (\bar\Lambda-1)\,r\big), \qquad E_8 = E_0\,\big(1 + g - (\bar\Lambda-1)\,r\big)^8.$$
+
+The cost is therefore subtracted from the annual growth rate, not applied as a fraction of the
+return. Using the average leverage and a constant rate are both simplifications; T5 applies the
+correction for rates from 2% to 5%.
 
 ### T5. Correction for the financing that LEAN does not charge (hold24, gross CAR 20.702%)
 
@@ -441,10 +480,11 @@ given that this is a zero-beta diversifier, is it well built?
 **With this code architecture, a single instrumented backtest at 0 bps contains every cost level
 in closed form.**
 
-The question is not invented for the occasion: the paper raises it itself. Among the lines of
-future work listed in §6.7 is "re-running with 2× and 5× baseline transaction costs to establish
-the break-even cost level". What follows answers that question for every cost level rather than for
-two, and without re-running anything.
+The question this section answers, how much execution cost the strategy can absorb before its return
+is gone, is not invented for the occasion: the paper raises it itself. Among the lines of future
+work listed in §6.7 is "re-running with 2× and 5× baseline transaction costs to establish the
+break-even cost level". What follows answers it for every cost level rather than for two, from the
+single 0 bps run; the forty runs at higher costs in §3.6 serve only to check the answer.
 
 ## 3.1 The two invariances everything depends on
 
@@ -456,13 +496,16 @@ different experiment and has to be re-run.
 The repository's code has two properties that break that circle.
 
 The first: **the signal does not look at execution prices**. Entries and exits in all five
-strategies evaluate `data[symbol].close`, that is, the market price of the bar, not the price at
-which our order was filled. Slippage moves the second and leaves the first intact, so it does not
-touch the condition that decides whether to open or close.
+strategies compare `data[symbol].close`, the market price of the bar, with bands and averages
+computed from market prices. No rule refers to the price at which an earlier order was filled, as a
+stop-loss measured from the entry price would. Slippage changes fill prices and leaves market prices
+intact, so it cannot change when a position opens or closes.
 
 The second: **sizing is relative to equity**. `set_holdings` receives a fraction of net equity,
-$\Lambda_t$, not a number of shares. A smaller account buys proportionally fewer shares, but the
-position remains the same fraction of capital.
+$\Lambda_t$, not a number of shares, and buys $\Lambda_t E/P$ shares. A smaller account buys
+proportionally fewer shares, but the position remains the same fraction of capital. With a fixed
+number of shares instead, an account reduced by costs would hold a larger fraction of its capital,
+and the costs would change the exposure itself.
 
 It follows that the set of trade instants $T = \{t_1,\dots,t_N\}$, the direction of each, and the
 weight of each as a fraction of equity are **identical at every cost level**. What changes is how
@@ -514,7 +557,7 @@ where it should.
 
 The model reconstructs **slippage**. Commissions are not modeled at all: they are already inside
 $E_0$, because the 0 bps run is not a run without costs but a run without *additional* slippage,
-one that pays the Interactive Brokers fee model in full. The horizontal axis of every chart is
+one that pays the Interactive Brokers fee model in full and the quoted bid-ask spread (§1.1). The horizontal axis of every chart is
 therefore "additional slippage", not "total cost".
 
 For this to work only one thing is needed: that the commission, **as a fraction of equity**, be
@@ -527,10 +570,11 @@ and both $\Lambda_i$ (which comes from SPY's 14-day volatility, a market quantit
 **invariant in $b$**. The commission takes the same fraction of equity at every cost level: it
 multiplies every path by the same sequence of factors, and cancels in the ratio $E_b/E_0$. This
 does not require the fraction to be constant *over time*, and it is not: it goes as $1/P_i$, so
-over the sample it halves while SPY moves from about 240 to about 570 dollars. What the model
+over the sample it falls to about 37% of its initial value while the price SPY trades at in the
+backtest, adjusted for dividends, moves from about 207 to about 564 dollars. What the model
 needs is that the fraction be the same in the two runs **at the same instant**, and it is, because
 at that instant both see the same price and the same leverage. On the order of magnitude, half a cent
-per share is equivalent to a tenth to a fifth of a basis point of slippage, a fraction of what is
+per share is equivalent to a tenth to a quarter of a basis point of slippage, a fraction of what is
 being measured on the cost axis.
 
 That commissions do follow equity can be seen in the raw data. Between the S0 `tight` run at 0 bps
@@ -546,7 +590,7 @@ an amount increasing in $b$. It does not.
 
 The declared fee model also has a minimum of 1 dollar per order, and a fixed minimum is not
 proportional to equity. That is not the regime in operation: the average order pays between 3.98
-and 4.77 dollars across all fourteen configurations, four to five times the threshold, and not
+and 4.77 dollars across all sixteen configurations, four to five times the threshold, and not
 even the most penalized run gets there, since S1 `tight` at 2 bps closes at $-53\%$ and still pays
 1.87 dollars per order. Where the minimum could bite, on the most de-leveraged days, it would make
 commissions slightly *more* than proportional: the error is bounded and of known sign. The one run
@@ -625,12 +669,12 @@ point where capital goes to zero the logarithm amplifies, and the same 0.185pp i
 weighs far more. This is not a failure of the model; it is the model's natural measure blowing up
 where wealth goes to zero.
 
-## 3.7 The $\bar w = \Lambda$ identity
+## 3.7 The $\bar w \approx \Lambda$ relation
 
-The average weight per order, $\bar w = w_{sum}/N$, lies between 1.8052 and 1.8282 across all
-fourteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
+The average weight per order, $\bar w = w_{sum}/N$, lies between 1.8048 and 1.8282 across all
+sixteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
 
-### T7. The $\bar w = \Lambda$ identity, break-even and ratio to turnover
+### T7. The $\bar w \approx \Lambda$ relation, break-even and ratio to turnover
 
 |  | variant | orders | $w_{sum}$ | $\bar w$ | $b^*$ (bps) | $w_{sum}/(\text{turn}/100)$ |
 |:---------------------|:----------|---------:|----------------:|----------:|------------:|----------------------:|
@@ -646,6 +690,8 @@ fourteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
 | S4 | loose | 2,914 | 5,283.0896 | 1.8130 | 2.363 | 2,923.8 |
 | S2′ | tight | 3,498 | 6,318.6135 | 1.8064 | 1.822 | 2,923.8 |
 | S2′ | loose | 3,026 | 5,480.9952 | 1.8113 | 2.284 | 2,923.8 |
+| S3′ | tight | 3,374 | 6,089.4032 | 1.8048 | 2.080 | 2,924.1 |
+| S3′ | loose | 2,886 | 5,228.7979 | 1.8118 | 2.385 | 2,923.9 |
 | S4′ | tight | 3,336 | 6,024.5691 | 1.8059 | 2.178 | 2,924.1 |
 | S4′ | loose | 2,864 | 5,188.1921 | 1.8115 | 2.462 | 2,923.9 |
 | bench intraday | none | 3,997 | 7,171.2571 | 1.7942 | -0.282 | 2,921.7 |
@@ -653,28 +699,31 @@ fourteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
 | bench 10:00 long | none | 4,001 | 7,170.0368 | 1.7921 | -0.624 | 2,921.5 |
 | bench 10:00 short | none | 4,004 | 7,171.8552 | 1.7912 | -0.512 | 2,921.9 |
 
-Over the fourteen strategy configurations $\bar w \in [1.8052;\ 1.8282]$, vs. `lambda_avg` $= 1.8056$. The two deviations (hold24 and the intraday benchmark) are discussed below.
+Over the sixteen strategy configurations $\bar w \in [1.8048;\ 1.8282]$, vs. `lambda_avg` $= 1.8056$. The two deviations (hold24 and the intraday benchmark) are discussed below.
 
-Ratio to LEAN's turnover: $w_{sum}/(\text{turnover}/100) \in [2,919.3;\ 2,924.2]$ on all eighteen rows, vs. 2,922 calendar days (2,012 NYSE sessions) in the window. LEAN averages the daily turnover over the samples of the same series it uses for the performance statistics, so this ratio counts those samples directly: eighteen rows say the series has one point per calendar day, and they say it without using any moment of the returns (Appendix A, §A.8).
+Ratio to LEAN's turnover: $w_{sum}/(\text{turnover}/100) \in [2,919.3;\ 2,924.2]$ on all twenty rows, vs. 2,922 calendar days (2,012 NYSE sessions) in the window. LEAN's Portfolio Turnover is the average, over its daily samples, of the notional traded that day divided by equity, and $w_{sum}$ is the same sum taken fill by fill; their ratio is therefore the number of samples LEAN used. On all twenty rows it is the number of calendar days, not of trading sessions: LEAN keeps one point per calendar day, with zero on days without trading, and it computes volatility, Sharpe ratio and PSR on that same series. Appendix A, §A.8 reaches the same conclusion from the moments of the returns; this check uses only the volume traded.
 
-This is not an empirical regularity: it is an identity by construction. The strategies are
-exclusively intraday, so every position opens from zero and closes in full within the day; every
-order therefore moves a notional equal to 100% of the target position, and the weight of the order
-coincides with the leverage of the moment. The mean of the weights can only coincide with the time
-average of the leverage.
+This is not an empirical regularity: it follows from how the strategies trade. They are exclusively
+intraday, so every position opens from zero and closes in full within the day. An entry moves
+exactly the target position, so its weight is the leverage of that day, $\Lambda_t$; an exit closes
+the same shares at a different price, so its weight differs from $\Lambda_t$ only by the trade's own
+return, $w_{exit} = \Lambda_t(1+x)/(1+\Lambda_t x)$ for a long whose price has moved by $x$. The
+mean of the weights is therefore the leverage averaged over orders. It comes close to the average
+over days, 1.8056, without having to equal it: a strategy that trades more often on quiet days, when
+$\Lambda_t$ sits at the cap of 2, has a slightly higher $\bar w$.
 
 **Practical consequence**: substituting $w_{sum} \approx 1.81\,N$ into the break-even formula,
 
 $$b^* \approx \frac{10^4\,\ln(1+R_0)}{1.81\,N}$$
 
 the cost tolerance of any strategy in this class can be computed from the README table alone,
-return and number of orders, before running any backtest. Verified out of sample on five
-configurations: S2 1.90 vs. a measured 1.903; S3 1.96 vs. 1.957; S4 2.09 vs. 2.088;
+return and number of orders, before running any backtest. Checked on five configurations against
+the exact value from $w_{sum}$: S2 1.90 vs. 1.903; S3 1.96 vs. 1.957; S4 2.09 vs. 2.088;
 S0 `tight` 1.669 vs. 1.670; S0 `loose` 2.113 vs. 2.107.
 
-The identity has two deviations, both expected. `hold24` has $\bar w = 0.0434$, because
+The relation has two deviations, both expected. `hold24` has $\bar w = 0.0434$, because
 `set_holdings` in that case rebalances only the delta relative to the position already open: it
-neither opens nor closes whole positions, and the identity does not apply for the same reason it
+neither opens nor closes whole positions, and the relation does not apply for the same reason it
 holds elsewhere. The `intraday` benchmark has $\bar w = 1.79416$, a gap of $-0.63\%$: the
 shortfall in $w_{sum}$ is 45.73, that is, 25.5 delta-type fills at the observed average weight,
 vs. 27 orders missing relative to the expected total of $2\times 2{,}012$. Every night of
@@ -687,7 +736,7 @@ explanation read from two independent sides.
 From the equity curve alone one cannot recover the number of orders, the win rate, the average
 gain and loss per trade, the expectancy, the commissions or the turnover: these are quantities that
 require direct instrumentation of the backtest, not its return series. The method gives the cost
-map, not the operating statement, which is why the fourteen configurations were run at 0 bps one
+map, not the operating statement, which is why the sixteen configurations were run at 0 bps one
 by one anyway.
 
 # §4. The three levers
@@ -698,15 +747,16 @@ the ladder apart and asks what each rung is worth on its own.
 
 ## 4.1 The design
 
-S2 and S4, the two configurations on which the paper builds its final comparison, differ on
-**two** axes rather than one. S2 requires three confirmations at entry (band, EMA, VWAP), the
-third of which does not appear in either published description, since equations (7) and (8) of
-the paper state two, and it exits on a simple check every 30 minutes. S4 requires two (band, EMA)
-and exits on a check every 5 minutes that must be confirmed on four consecutive bars. Comparing
-them directly does not say which of the two changes produced the difference.
+S2 and S4, the two configurations on which the paper builds its final comparison, differ on **two**
+axes rather than one. S2 requires three confirmations at entry (band, EMA, VWAP), the third of which
+appears in neither published description: equations (7) and (8) of the paper (§4.2) and the README
+both list only the band and the EMA. It exits on a simple check every 30 minutes. S4 requires two
+(band, EMA) and exits on a check every 5 minutes that must be confirmed on four consecutive bars.
+Comparing them directly does not say which of the two changes produced the difference.
 
 The two missing cells were built: **S2′** is S2 without the VWAP entry condition, **S4′** is S4
-with that condition. Neither is repository code, and their rows sit in a separate, labeled table.
+with that condition. A third, **S3′**, is S3 with the same condition and is used in §4.4. None is
+repository code, and their rows sit in a separate, labeled table.
 
 The third axis is not a design choice but a point on which the published descriptions differ, and
 it is not where one would expect. The code exits a long position when $P < \max(UB,\ \text{vwap})$,
@@ -802,8 +852,9 @@ under both thresholds.
 
 One point needs clarifying at once, because it bounds the claim: all four cells of the table have
 the EMA filter. What is established is that the VWAP is additive **with respect to the exit
-structure, in the presence of the EMA**. The cell that would allow the check in the absence of the
-EMA does not exist in the data, and the point returns in §4.4.
+structure, in the presence of the EMA**. The check in the absence of the EMA would need band + VWAP
+under both exit structures; only the one with the exit package was run (S3′), and the point returns
+in §4.4.
 
 The ratio between how much the filter removes and how much it is worth is the interesting part. It
 blocks between 1.4% and 1.7% of entries, 22 to 26 trades depending on the cell out of a total of
@@ -818,7 +869,9 @@ The repository introduces two things together in moving from S2 to S4: the exit 
 30 to 5 minutes (cadence), and confirmation on four consecutive bars is required (persistence).
 The two appear inseparable, but the cell that separates them already exists in the repository:
 **S1 is S3 without the gate**, identical in everything else, with the same 30/5 intervals, the
-same threshold formula, no EMA filter and no VWAP filter. The package therefore decomposes:
+same threshold formula, no EMA filter and no VWAP filter. The paper itself describes Strategy 3 in
+these terms, as Strategy 1 with the persistence counter added (paper, §4.3); what it does not do is
+measure the two steps separately, which is what the table below does:
 
 ### T9. Decomposition of the exit package (no EMA, no VWAP)
 
@@ -841,23 +894,29 @@ an artifact of the threshold.
 
 **The gate offsets exactly that cost.** Under `loose` the cadence removes 0.049 and the gate
 returns 0.098: the net balance of the package is +0.049, so the gate recovers the cost and adds a
-quantity of the same order. Under `tight` the recovery is much larger (+0.238) because the exit
-threshold is a stop at zero or negative distance, and persistence is the only thing that keeps a
-position open.
+quantity of the same order. Under `tight` the recovery is much larger (+0.238). There the exit
+threshold typically starts at, or above, the level that authorized the entry (§4.1): a long enters
+when the price crosses the upper band, and the same band, which widens during the session, is the
+level it must stay above. Without persistence, the first pullback below it closes the position; with
+four consecutive confirmations required, the position survives pullbacks shorter than twenty
+minutes. The gate is doing the work that a stop placed some distance below the entry would otherwise
+do.
 
-The conclusion to take away is not that the gate is worth zero, but **that it is not a standalone
-source of edge**: it compensates for a cadence choice made two strategies earlier. The repository
-presents S4 as an improvement on S2; on this reading, what S4 does is pay a cost (the 5-minute
-cadence) and then buy its remedy (the gate).
+The conclusion to take away is not that the gate is worth zero, but **that it cannot be judged apart
+from the cadence**: part of what it returns only compensates for a cadence choice made two
+strategies earlier. The repository presents S4 as an improvement on S2; on this reading, what S4
+does is pay a cost (the 5-minute cadence) and then buy its remedy (the gate), which returns more
+than the cost under both thresholds.
 
-## 4.4 The EMA substitutes for the gate, the VWAP does not
+## 4.4 The EMA substitutes for the exit package, the VWAP does not
 
 The same package measured in the presence of the other two entry filters:
 
 ### T10. Effect of the **exit structure**, 30′ simple to 5′ + gate $N=4$
 
 Eight-year log return, first figure `tight` and second `loose`. The columns are the four
-combinations of the two entry filters; the design has four and the data contain three.
+combinations of the two entry filters; the fourth would need band + VWAP with the 30′ simple exit,
+which was not run (S3′ supplies that combination with the exit package only).
 
 | value of the exit package | no EMA, no VWAP ($S3-S0$) | EMA, no VWAP ($S4-S2'$) | EMA and VWAP ($S4'-S2$) | no EMA, VWAP |
 |:----------------------|----------------------:|---------------------:|----------------------:|:-------------|
@@ -868,11 +927,12 @@ Possible readings, each at **a single level** of the other filter:
 
 - **effect of the EMA on the package** (col. 2 minus col. 1), measured with the VWAP absent: -0.04604 (`tight`) and -0.05262 (`loose`). Negative interaction, so the EMA and the package are **substitutes**
 - **effect of the VWAP on the package** (col. 3 minus col. 2), measured with the EMA present: -0.00044 and +0.00047. Zero interaction, so **additive**
+- **effect of the EMA on the VWAP**, with the exit package in place: the VWAP is worth +0.00804 without the EMA ($S3'-S3$) and +0.03339 with it ($S4'-S4$) under `tight`, +0.00650 and +0.02850 under `loose`; interaction +0.02536 and +0.02200. Positive, so the two entry filters are **complements**. S4′ beats S3′ by +0.04526 and +0.03000
 
 The second and third columns are identical to each other and different from the first. That is:
 **adding the VWAP filter does not change the value of the exit package; adding the EMA filter
-brings it to zero.** The EMA × package interaction is $-0.046$ under `tight` and $-0.053$ under
-`loose`.
+reduces it by about 0.05, from 0.173 to 0.127 under `tight` and from 0.049 to about zero under
+`loose`.** The EMA × package interaction is $-0.046$ under `tight` and $-0.053$ under `loose`.
 
 The paper does not leave this point implicit. In the section devoted to
 S4 it states that the two mechanisms "are structurally independent: the EMA filter operates at the
@@ -897,31 +957,26 @@ forward. The paper writes "*potentially* synergistic", and that caution should b
 the statement was conditional. It has been tested here, and the measured interaction points the
 other way.
 
-The full design would have four columns, one for each combination of the two entry filters, and the
-fourth, band + VWAP **without** EMA, does not exist in the data. A limit follows, and it is this:
-the EMA turns out to be a substitute for the package **as measured in the absence of the
-VWAP**, and the VWAP turns out to be additive **as measured in the presence of the EMA**. Each
-conclusion holds at one level of the other filter only, and the two cross-checks, together with the
-three-way interaction, would require four backtests that were not run.
-
-EMA filter and persistence gate are **substitutes**: they do the same job, keeping out or closing
-breakouts that do not continue, and having both does not pay twice. The VWAP condition is
-different: it acts on something neither of the other two intercepts.
+The EMA filter and the exit package are **substitutes**: both deal with breakouts that do not
+continue, one by keeping them out and the other by not closing on their noise, and having both
+does not pay twice. The VWAP condition does not overlap with the package: its value is the same
+under both exit structures (T8).
 
 Hence the answer to the opening question. Under the specified and implemented threshold, the best
-of the fourteen is S4′: it is S4 plus the only one of the three entry conditions that does not
-overlap with the others, and therefore the only one that can add its full contribution. The lead is
+of the sixteen is S4′: it is S4 plus the one entry condition that does not overlap with the exit
+package. The lead is
 not uniform across the two axes, however: under `loose` the exit package is worth zero and S2,
 which is repository code, is on a par with S4′ (259.7 vs. 258.6 at 0 bps). The full comparison is
 in §6.
 
-The design also points to a cell that has not been tried. If the EMA filter and the gate are
-substitutes, the combination gate + VWAP **without** EMA, that is, S3 with the VWAP filter added,
-would avoid the overlap and keep the two levers independent. It has not been measured, and it
-cannot be predicted either: estimating it would mean extrapolating the effect of the VWAP to a
-level of the EMA at which it was never measured, that is, assuming exactly the interaction that is
-missing. The statement that S4′ is the best should therefore be read for what it is: the best
-among the configurations tried, not among those possible. The limit is stated in §8.
+One combination of the two entry filters was missing from the design, band + VWAP **without**
+EMA. It was run with the exit package, as **S3′**, to check whether S4′ is beaten once the EMA is
+dropped. It is not: S4′ beats it by 0.045 in log wealth under `tight` and 0.030 under `loose`.
+The run also shows that the two entry filters are not independent: with the exit package in
+place, the VWAP is worth 0.0080 without the EMA and 0.0334 with it (0.0065 and 0.0285 under
+`loose`), a positive interaction, so they are **complements** (T10). The same combination with the
+30′ simple exit was not run, so each conclusion of the table above still holds at one level of the
+other filter only (§8).
 
 ## 4.5 How much the zero-distance threshold weighs
 
@@ -986,14 +1041,12 @@ Slippage level at which `tight` and `loose` break even, for a fixed strategy.
 
 Negative crossover = `loose` already wins at 0 bps and the gap widens. On S3 and S4 the sign reverses at 0 bps, but `loose` has a lower $w_{sum}$ and therefore decays more slowly. Whether the overtake falls at a realistic level of slippage is discussed below.
 
-The crossover falls at **0.209 bps** on S3 and **0.357 bps** on S4. Whether that is inside the
-range of realistic execution costs rests on an assumption this report does not measure: 0.25 to
-0.5 bps per fill is used throughout as a working range for a liquid ETF traded at the market, not
-a calibrated figure (§8). If costs fall in that range, `loose` wins everywhere, including where it
-lost at zero cost, and the exit that appears only in the README's description is better than the
-one the paper specifies.
+The crossover falls at **0.209 bps** on S3 and **0.357 bps** on S4. Since the 0 bps runs already pay
+the quoted bid-ask spread (§1.1), these are costs on top of it: `loose` overtakes `tight` on S3 and
+S4 only if execution is worse than the quote by more than that. This report does not measure how
+large that excess is, so it cannot say which of the two exits wins once it is included (§8).
 
-![F2. The four cells of the VWAP entry filter × exit structure plane, under the two exit thresholds](figures/F2_factorial_design.png)
+![F2. The four cells of the VWAP entry filter × exit structure plane, all with the EMA filter, under the two exit thresholds](figures/F2_factorial_design.png)
 
 # §5. Ranking stability
 
@@ -1012,7 +1065,7 @@ There is a single exception, and it is worth setting out.
 | loose | return | yes | S2 > S4 > S3 > S0 > S1 |
 | loose | Sharpe | yes | S2 > S4 > S3 > S0 > S1 |
 
-The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The hypothesis "turnover, not the number of trades, predicts the drag" cannot be tested on these data: by the identity of T7 the two are proportional, so there is no variance to explain.
+The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The hypothesis "turnover, not the number of trades, predicts the drag" cannot be tested on these data: by the relation of T7 the two are almost proportional, so there is almost no variance to explain.
 
 Under `tight`, the ranking by return is S4 > S3 > S2 > S0 > S1 at every level, from 0 to 2 bps.
 Under `loose` it is S2 > S4 > S3 > S0 > S1, again unchanged. For Sharpe the same holds across the
@@ -1024,9 +1077,9 @@ at any of the subsequent levels. It is the only inversion in the whole eight-yea
 It concerns the comparison, S0 vs. S1, on which the paper builds the Momentum Paradox, and it is
 not a point against the paper. The authors make no claim on that step of Sharpe: their sentence is
 "*degrading total return (196% → 177%), Sharpe (0.835 → 0.84, a near wash), and win rate (40% →
-32%)*", and the parenthesis is theirs. They are right, and more completely than the word "near"
-suggests: +0.005 on a quantity whose standard error, from the moments in Appendix A, is two orders
-of magnitude larger, is exactly a wash. The Momentum Paradox does not rest on that number anyway
+32%)*", and the parenthesis is theirs. They are right not to lean on it: +0.005 separates two
+configurations that share most of their trades, and it reverses at the first cost level, as the
+next paragraph shows. The Momentum Paradox does not rest on that number anyway
 but on the return, which loses nineteen points and never moves in the ranking: S1 remains last at
 all five cost levels.
 
@@ -1035,7 +1088,7 @@ of S1 is no longer a wash but a clear deterioration, and all four metrics of tha
 stated direction. **Costs do not overturn the paper's conclusion: they sharpen it.** It is the case
 in which the strategy most penalized by costs is also the one the paper identified as the weakest,
 and the coincidence is not accidental: S1 has 4,900 orders vs. the baseline's 3,594, that is,
-the highest $w_{sum}$ of the fourteen configurations, so it is the row that decays fastest as soon
+the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon
 as the cost rises.
 
 ![F3. Decay under costs. The 0 bps baseline already includes IB commissions](figures/F3_net_profit_vs_slippage.png)
@@ -1045,7 +1098,7 @@ as the cost rises.
 The paper breaks its trades down by weekday and reports the ordering Friday > Wednesday >
 Thursday > Tuesday > Monday, reading it as "a robust feature of market microstructure rather than
 a mislead caused by overfitting" (paper, §5.5, Table 9). The selection question this report
-applies to itself in §A.3 — fourteen configurations searched, one reported — applies to any
+applies to itself in §A.3 — sixteen configurations searched, one reported — applies to any
 ranking over five groups. Applying it to one's own results and not to the ranking one is checking
 would make the severity selective, so it is applied here as well.
 
@@ -1080,9 +1133,10 @@ from the trade lists rather than from a re-run.
 
 # §6. S4′: a configuration the repository does not include
 
-§4 decomposes the repository's design and finds that the VWAP entry filter is additive edge,
-separate from everything else. If it is, the best configuration is not S4: it is S4 with that
-condition added, S4′, and it was never run in the repository because no cell crosses all three
+§4 decomposes the repository's design and finds that the VWAP entry filter adds edge that the
+exit package leaves intact and that, with the package in place, is larger when the EMA filter is
+present. If so, the best
+configuration is not S4: it is S4 with that condition added, S4′, and it was never run in the repository because no cell crosses all three
 entry filters with the persistence-based exit structure at the same time.
 
 ### T13. S4′ vs. the best configurations in the repository
@@ -1094,13 +1148,13 @@ entry filters with the persistence-based exit structure at the same time.
 | S2 loose | 259.7 | 214.2 | 174.6 | 2.372 | 9.6% | 0.999 |
 | S4 tight | 259.2 | 208.2 | 164.4 | 2.088 | 8.4% | 1.036 |
 
-The 0.25 and 0.5 bps columns of S2′ and S4′ are **predicted** by the model of T6, not measured: for these two cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
+The 0.25 and 0.5 bps columns of S4′ are **predicted** by the model of T6, not measured: for the constructed cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
 
 At 0 and at 0.25 bps the leading configuration is S4′ `tight`. At 0.5 bps S4′ `loose` takes the
 lead, since it has a lower $w_{sum}$ and therefore decays more slowly, and the top three close to
 within two percentage points: 176.7 vs. 174.8 for S4′ `tight` and 174.6 for S2 `loose`. In one
 form or the other S4′ is therefore first at all three levels, but it is not always the same
-variant, and the highest break-even of the fourteen configurations does not belong to S4′ `tight`
+variant, and the highest break-even of the sixteen configurations does not belong to S4′ `tight`
 (2.178 bps) but to S4′ `loose`: **2.462 bps**.
 
 Two questions follow, and they are separate. Among the cells that are in the repository, the best
@@ -1121,7 +1175,7 @@ zero edge, not against S4: whether the margin between the two survives outside t
 these data do not answer (§8). S4′ is best read as S4 plus a small increment of consistent sign,
 not as a different strategy.
 
-That the 0.25 and 0.5 bps columns of the two constructed cells are predicted by the model of §3
+That the 0.25 and 0.5 bps columns of the S4′ rows are predicted by the model of §3
 rather than measured is consistent with the rest of the method, since the cost model was validated
 on forty independent rows; but it is the only part of the table that does not come from a direct
 backtest, and §8 records it as such.
@@ -1129,7 +1183,7 @@ backtest, and §8 records it as such.
 The register in which this result is presented matters as much as the result itself. It is not
 "this analysis beat the repository": the condition that separates S4′ from S4 is already written
 in the repository, in S2, and crossing it with the exit structure of S4 required no new idea, only
-a cell of the factorial that had not been run. This is why S2′ and S4′ stay in a separate table and are labeled as
+a cell of the factorial that had not been run. This is why S2′, S3′ and S4′ stay in a separate table and are labeled as
 constructions of this report rather than as repository code. The distinction between "what the
 repository measured" and "what the factorial implies" is the point of the section, not a
 formatting detail.
@@ -1147,14 +1201,22 @@ points, appears on all five strategies (T1). The paper transcribes its own outpu
 this is the only platform statistic that does not come back after a lapse of time on the same
 code, since orders, Sharpe, drawdown, win rate and turnover all agree to within rounding.
 
-What changed is the platform, not the original work.
-Two things follow, and they point in opposite directions. Today's value is well defined and can be
-checked: Appendix A, §A.8 reproduces it from the moments of the same run, to within half a point,
-once LEAN's own definition is used, in which the PSR is measured against a benchmark Sharpe of 1
-rather than against zero. But a statistic that moves by forty points on unchanged code
-and unchanged data cannot be cited as evidence for or against anything, which is why Appendix A
-computes the Deflated Sharpe Ratio from the raw moments of the returns rather than from it. What
-the difference between the two eras is remains unexplained here.
+What changed is the platform, not the original work, and the change can be identified. LEAN's
+own routine, `Statistics.ProbabilisticSharpeRatio`, with the benchmark Sharpe of 1 that Appendix A,
+§A.8 documents, reproduces both columns once a single detail is allowed to differ between the two
+dates: the risk-free rate inside the Sharpe ratio that the PSR tests. Without it, the routine
+returns the authors' values (61.7% against 61.6% on S0, 83.2% against 83.4% on S4); with the
+platform's rate of about 2.7% subtracted, it returns today's (21.5% against 21.5%, 44.4% against
+44.3%), to within 0.3 points on all ten figures. The printed Sharpe ratio subtracts the rate on
+both dates, which is why it reproduces. The check starts from each run's printed Sharpe and annual
+standard deviation and uses, for all five strategies, the skewness and kurtosis measured on S4′
+tight, since they are not reported per strategy; the table is in the supplementary file.
+
+The two dates therefore report two different statistics under the same name: in March the PSR
+tested the Sharpe ratio before the risk-free rate, today after it. Each is well defined, but they
+cannot be compared with each other, and neither is the probability that the true Sharpe ratio is
+positive, since both test against a Sharpe of 1. This is why Appendix A computes the Deflated
+Sharpe Ratio from the raw moments of the returns rather than from the platform's figure.
 
 **Provenance of the two sides of this comparison.** An argument that a platform has moved is only
 worth as much as the two runs behind it can be dated, so both are recorded here. On the authors'
@@ -1171,7 +1233,7 @@ is the engine. The projects are configured to follow QuantConnect's master branc
 ran on whichever build was deployed that day: the S0 runs of 26 August report LEAN engine
 v2.5.0.0.18034 in their log header, and master stood at v18057 on 4 September, twenty-three builds
 later in nine days. Five months of that cadence separate the two columns of the table above. This
-dates the gap; it does not explain it.
+dates the gap; which build changed the definition is not identified here.
 
 **2. S2 requires three entry conditions, not two.** Equations (7) and (8) of the paper describe a
 "dual confirmation" entry, $P_t > UB_t$ **and** $P_t > EMA_{100}(t)$. In `strategy2.py` the entry
@@ -1199,25 +1261,23 @@ it is stated here for completeness.
 
 # §8. Limitations
 
-This report does not establish that S4′ holds up over time. All fourteen configurations are
-measured on a single window, 2017-05-10 to 2025-05-10, and the best of the fourteen emerges from a
+This report does not establish that S4′ holds up over time. All sixteen configurations are
+measured on a single window, 2017-05-10 to 2025-05-10, and the best of the sixteen emerges from a
 condition, the VWAP entry filter, that blocks only 1.4% to 1.7% of entries. That is exactly the
 case in which the full sample can mislead, because an advantage concentrated on a few dozen trades
 is more sensitive to the sub-window on which it is measured than an advantage spread over three
 thousand. No rolling-window or out-of-sample analysis over time was carried out. The Deflated
 Sharpe Ratio of Appendix A answers a different question, and answers it well (whether the best of
-fourteen is distinguishable from selection noise), but it does not answer this one: it is not a
+sixteen is distinguishable from selection noise), but it does not answer this one: it is not a
 temporal validation, and it is declared as such in its own limitations. This is not a gap that
 separates this report from the paper, since the "subperiod analysis on rolling 2-year windows to
 detect strategy decay" appears among the paper's own lines of future work, §6.7; but sharing an
 open question is not the same as having closed it. It remains the check that both lack, and it is
 the first thing to do.
 
-A second gap lies in the design. Of the four combinations of the two entry filters the sample
-covers three (band + VWAP **without** EMA is missing), so each of the two conclusions of §4.4 holds
-at one level of the other filter only, and the three-way interaction is not measurable. The
-missing cell is also the only one the design points to as a possible candidate to beat S4′, and it
-cannot be estimated without assuming precisely the interaction that is absent.
+A second gap lies in the design. Band + VWAP **without** EMA was run only with the exit package
+(S3′, §4.4), not with the 30′ simple exit, so each of the two conclusions of §4.4 holds at one
+level of the other filter only, and the three-way interaction is not measurable.
 
 One more cell is missing, and its absence prevents attributing a mechanism rather than an
 effect. To establish whether the cost of the five-minute cadence comes from the VWAP term, as the
@@ -1246,17 +1306,17 @@ The cost model itself is linear in $b$ and uniform across all fills, regardless 
 order size or the volatility regime of the moment. It models neither market impact nor any
 dependence on intraday liquidity, which for the same notional traded could weigh differently on an
 entry at 9:31 and one at 15:55. The level of additional slippage a real execution would incur is
-not measured either: the 0.25 to 0.5 bps range used in §4.5 and §6 is a working assumption for a
-liquid ETF traded at the market, and the crossovers of T11 sit inside it, so the conclusion that
-`loose` wins at realistic costs is conditional on that assumption. The break-even levels
-themselves are not.
+not measured either. The 0 bps runs already pay the quoted bid-ask spread, so what the cost axis
+adds is execution worse than the quote; the 0.25 to 0.5 bps used in §6 is a working assumption for
+it, not a calibrated figure. The ranking of `tight` and `loose` on S3 and S4 depends on it (§4.5);
+the break-even levels do not.
 
 One cost is not in the model at all, and it is worth saying why it need not be. The strategy is
 short about half the time it is in the market: on S4, 816 of its 1,694 trades are short (48.2%),
 and they account for 45.7% of the time at market, counting the positions that open and close in
 the same session, with a mean holding period of 112 minutes against 124 on the long side. Stock
-borrow, however, accrues on short positions held at the close of business, and the schedule that
-gives the strategy its zero beta keeps it out of that charge almost entirely. Over the eight years
+borrow, however, accrues on short positions held at the close of business, and the schedule,
+flat every evening, keeps the strategy out of that charge almost entirely. Over the eight years
 exactly five positions survive to the next session, all of them opened on half-day sessions where
 the 15:58 liquidation branch is never reached (§7, item 3), and **only one of the five is short**:
 913 shares of SPY carried over the Christmas holiday of 2018, a notional of 194,000 dollars held
@@ -1277,10 +1337,11 @@ signs. Separating them was attempted in two ways, by difference between the two 
 with a run on the opening half-hour alone, and the two estimates do not agree with each other: the
 gap is of the order of one round trip of execution cost, which cancels in the matched comparison
 and does not in the isolated run. The text therefore reports the net figure and not its
-components. The second: the two runs that produce it both run at zero slippage, and the only
-friction charged is the per-share commission, identical at any time of day. In reality the spread
-at 9:31 is wider than at 10:00, so the run matched to the open receives a discount it would not
-have in practice: the 17.8 points are an upper bound. The cost model just described does not
+components. The second: the two runs that produce it both run at zero additional slippage, so
+they pay the per-share commission and the quoted spread, and nothing for execution worse than the
+quote. Near the open that extra cost is plausibly larger than at 10:00, so the run matched to the
+open may receive a discount it would not have in practice, and the 17.8 points are best read as an
+upper bound. The cost model just described does not
 correct for this, because it applies a single $b$ to all fills and has no time-of-day dimension;
 switching it on, the two runs would worsen by almost the same amount and the gap would stay where
 it is.
@@ -1293,8 +1354,8 @@ invariant: converted to cents it has no single value, since SPY grew a great dea
 while the tick stayed at one cent. The same threshold is worth fewer cents in 2017 than in 2025,
 and the constraint, if it binds, binds at the start of the sample. It is nonetheless a wide
 threshold for an instrument on which one cent covers the whole quote for most of the session, and
-this is why the result of §2 is reported rather than withdrawn. How large the opening extra-spread
-on SPY actually is, however, is not measured here; it is a judgment about the instrument, not a
+this is why the result of §2 is reported rather than withdrawn. How much worse than the quote execution
+at the open actually is, however, is not measured here; it is a judgment about the instrument, not a
 datum of this report.
 
 The report covers a single instrument (SPY), a single time window and a single rate regime. The
@@ -1303,15 +1364,15 @@ not calibrations. Neither is load-bearing: the Deflated Sharpe Ratio moves only 
 98.0% for risk-free rates between 1% and 3% (Appendix A, §A.4.3), and the financing rate is a
 common-sense choice over a reported sensitivity range (T5), not a measured value.
 
-Two clarifications on the provenance of the numbers. The 0.25 and 0.5 bps columns of S2′ and S4′
-are predicted and not measured (§6): they are the only part of the report that does not come from
+Two clarifications on the provenance of the numbers. The 0.25 and 0.5 bps columns of the constructed
+cells are predicted and not measured (§6): they are the only part of the report that does not come from
 a direct backtest. And the reproduction took place on a platform that has moved in the meantime:
 relative to the authors' backtest files, commissions come out higher by between 0.24% and 0.51%
 and the return lower by up to 0.29pp, in addition to the PSR gap discussed in §7. These are small
 differences of constant sign, but they rule out treating the last digits of any comparison as
 exact.
 
-Finally, the Deflated Sharpe Ratio corrects for selection **within** the family of fourteen
+Finally, the Deflated Sharpe Ratio corrects for selection **within** the family of sixteen
 configurations, not for the choice to study this family in the first place: that selection, the
 publication of a strategy because it worked, took place upstream, and no downstream correction can
 recover it. It is a structural limit of any analysis built on someone else's code, not specific to
@@ -1330,18 +1391,18 @@ One result of this report is that the best configuration among those examined, S
 with the VWAP entry filter added, reaches a Sharpe of 1.075 vs. 1.036 for S4 and 0.835 for the S0
 baseline.
 
-This result was obtained **by selecting the maximum over fourteen configurations**. Selection
+This result was obtained **by selecting the maximum over sixteen configurations**. Selection
 introduces a bias that has nothing to do with the quality of the strategy: the maximum of $N$
 noisy estimates is systematically above the mean of the population they come from, even when that
 population has a mean of exactly zero.
 
-The most direct analogy: fourteen perfectly fair coins, a hundred tosses each, and one keeps the
+The most direct analogy: sixteen perfectly fair coins, a hundred tosses each, and one keeps the
 coin with the most heads. That coin will show a frequency of heads above 50%. Not because it is
-biased, but because it is the maximum of fourteen draws.
+biased, but because it is the maximum of sixteen draws.
 
 The right question is therefore not *"is 1.075 a high Sharpe?"* but:
 
-> **How high would the best of the fourteen have been if none of the fourteen had any edge?**
+> **How high would the best of the sixteen have been if none of the sixteen had any edge?**
 
 This appendix computes that threshold and compares the observed result against it.
 
@@ -1366,12 +1427,13 @@ $\Phi$, so the number it returns is at once the complement of a one-sided p-valu
 $\widehat{SR}$ as a pivotal statistic for a location parameter, the confidence that $SR$ exceeds
 $SR^*$. The two readings agree for as long as $SR^*$ is a constant fixed in advance, which is the
 case for the PSR. They stop agreeing once the threshold is itself estimated from the same data,
-which is the case for the deflated version used here; §A.10 states the consequence. The figure of
+which in the deflated version used here happens only through a plug-in worth a hundredth of a
+point (§A.10). The figure of
 §A.6.2 is therefore reported as a test statistic with a nominal level, not as a probability
 attached to the parameter.
 
 The limitation is that the PSR looks at **one** strategy at a time and does not know how many were
-tried. Applying it to all fourteen and reporting the best means reporting the maximum of fourteen
+tried. Applying it to all sixteen and reporting the best means reporting the maximum of sixteen
 PSRs, that is, falling back into the original problem.
 
 The **Deflated Sharpe Ratio** (Bailey and López de Prado, 2014) is the same formula with the
@@ -1384,8 +1446,8 @@ $$\boxed{\;\text{DSR} = \text{PSR}(SR_0)\;}$$
 ### A.2.1 A second reason, independent of the first: the platform PSR does not reproduce
 
 There is a second reason, distinct from multiple selection, not to build the DSR on the PSR that
-QuantConnect reports in its interface: that number has not remained stable over time on the same
-code.
+QuantConnect reports in its interface: that number has not remained the same over time on the same
+code, because its definition has changed.
 
 The repository preserves `stats/strat{0..4}_8y.json`, the authors' backtest output. Re-running
 the same code without modifications, over the same period, five months later — their runs are of
@@ -1406,13 +1468,14 @@ deviation and Portfolio Turnover all agree. The strategy sources are unchanged s
 `b960d36` and the order counts match exactly on all five rows, so the inputs to the computation are
 the same on the two dates up to the fill-price differences documented in §1, which move the returns
 by at most 0.29pp and cannot account for forty points of PSR. What is not fixed between the two
-dates is the engine build, since the projects follow QuantConnect's master branch. The reading this
-supports is that the figure moved on the platform's side rather than in the code; which build, and
-what in it, is not recoverable from the result files, and §7 dates the gap without explaining it.
+dates is the engine build, since the projects follow QuantConnect's master branch, and §7
+identifies what changed in it: LEAN's routine reproduces the March values with no risk-free rate
+inside the tested Sharpe ratio and today's with the rate subtracted, to within 0.3 points on all
+ten figures. The build in which the change entered is not recoverable from the result files.
 
 This is the practical reason, in addition to the statistical one of §A.2, why the DSR of this
 appendix does not start from the PSR reported in the interface of any backtest, neither of our
-own fourteen nor of the March runs preserved in the repository. It starts from the five scalar
+own sixteen nor of the March runs preserved in the repository. It starts from the five scalar
 accumulators of §A.5, computed locally from the daily returns of the same run: a quantity that does
 not depend on which version of QuantConnect's pipeline produced it. The full detail of this
 comparison is in §7 (T1).
@@ -1430,64 +1493,69 @@ $$SR_0 = \sigma\left[(1-\gamma)\,\Phi^{-1}\!\left(1 - \frac{1}{N}\right) + \gamm
 
 with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The two terms are the quantiles
 corresponding to the mode and the mean of the limiting Gumbel, combined with weight $\gamma$. For
-$N = 14$ the quantity in brackets is 1.7384.
+$N = 16$ the quantity in brackets is 1.8005.
 
-The relevant property is that $\Phi^{-1}$ grows **logarithmically** in $N$: the threshold rises
-very slowly as the number of trials increases.
+The relevant property is that $\Phi^{-1}(1-1/N)$ grows like $\sqrt{2\ln N}$, more slowly even than
+a logarithm: the threshold rises very slowly as the number of trials increases.
 
 ---
 
 ## A.4 Parameters: choice and justification
 
-### A.4.1 Number of trials, $N = 14$
+### A.4.1 Number of trials, $N = 16$
 
-The fourteen configurations for which a 0 bps backtest exists: S0, S1, S2, S3, S4, S2′, S4′, each
+The sixteen configurations for which a 0 bps backtest exists: S0, S1, S2, S3, S4, S2′, S3′, S4′, each
 in the two exit variants `tight` and `loose`.
 
-Twelve of these belong to the initial design. The two prime cells (S2′, S4′) were **constructed
-along the way**, after observing the results of S2 and S4, to separate two axes that were
-confounded in the original comparison, entry filter and exit structure. This is data-driven
-research, not a design fixed in advance, and it is declared as such: the motivation was one of
-experimental design, not of expected result, but the cells were added after looking at the
-numbers.
+Ten of these belong to the initial design. The three prime cells (S2′, S3′, S4′) were
+**constructed along the way**: S2′ and S4′ after observing the results of S2 and S4, to separate
+two axes that were confounded in the original comparison, entry filter and exit structure; S3′
+after observing the interactions of §4.4, to run the one combination of the two entry filters
+missing under the exit package. This is data-driven research, not a design fixed in advance, and
+it is declared as such: the motivation was one of experimental design, not of expected result,
+but the cells were added after looking at the numbers.
 
-No configuration was explored and discarded: the fourteen are the entire search space and all are
+No configuration was explored and discarded: the sixteen are the entire search space and all are
 reported. The variants at $b > 0$ do not count as separate trials, because they are not
 independent searches but deterministic transformations of the 0 bps rows through the cost
 reconstruction.
 
-$N = 14$ is also **conservative** with respect to the independence assumption: the trials share
+$N = 16$ is also **conservative** with respect to the independence assumption: the trials share
 instrument, window, leverage rule and most of the logic, so the number of effectively independent
-trials is below 14, which would lower $SR_0$.
+trials is below 16, which would lower $SR_0$.
 
 ### A.4.2 Null dispersion, $\sigma$: two specifications
 
 **Main specification (conservative).** Under $H_0$ the relevant dispersion is the standard error
-of the sample Sharpe of one independent trial:
+of the sample Sharpe of one independent trial whose true Sharpe is zero, $1/\sqrt{n} = 0.02230$.
+The main specification plugs the observed Sharpe into the general expression instead,
 
 $$\text{SE}(\widehat{SR}_d) \approx \sqrt{\frac{1 + \widehat{SR}_d^{\,2}/2}{n}} = 0.02234$$
 
-already in daily units. This is the specification on which the conclusions rest.
+which is 0.2% larger and therefore raises the threshold slightly. Both are already in daily units;
+the conclusions rest on the second, and §A.6.2 reports the first alongside it.
 
 **Bailey and López de Prado specification.** The authors prescribe the **cross-sectional**
-standard deviation of the $N$ sample Sharpes; over the fourteen values at 0 bps it is
-$\sigma_{\text{cross}} = 0.06917$ in QC Sharpe units.
+standard deviation of the $N$ sample Sharpes; over the sixteen values at 0 bps it is
+$\sigma_{\text{cross}} = 0.06795$ in QC Sharpe units.
 
-Here this specification is **not informative**, for a reason that matters: the fourteen
+Here this specification is **not informative**, for a reason that matters: the sixteen
 trials are minor variants of one another, so they produce nearly identical Sharpes.
 $\sigma_{\text{cross}}$ measures the variability *between variants*, not the sampling variability
 that an independent trial would have under the null hypothesis, and it is in fact smaller than the
-theoretical standard error by a **factor of 4.25**: $0.06917$ vs.
+theoretical standard error by a **factor of 4.33**: $0.06795$ vs.
 $0.02234 \times 13.173 = 0.29430$, both in QC units. The resulting figure is so high as to be
 insensitive to any $N$, which is in itself the symptom that the threshold is too low. It is
 reported in §A.7 for completeness, not as a result.
 
-Two details, both in the conservative direction and therefore worth stating:
+Two details on the threshold:
 
-- The SE used is the Gaussian one. The version corrected for the actual moments is
-  $\sqrt{(1 - \hat\gamma_3\widehat{SR}_d + \frac{\hat\gamma_4-1}{4}\widehat{SR}_d^{\,2})/n} = 0.02055$,
-  that is, smaller. Using 0.02234 raises the threshold.
-- $\sigma_{\text{cross}}$ is computed over the fourteen Sharpes **including the maximum**, which
+- Under $H_0$ the higher moments do not enter the SE. The non-normal expression,
+  $\sqrt{(1 - \hat\gamma_3 SR + \frac{\hat\gamma_4-1}{4} SR^{2})/n}$, reduces to $1/\sqrt{n}$ when
+  the true Sharpe is zero, so the skewness and kurtosis of §A.6.1 act on the denominator of the
+  test, not on the threshold. Evaluated at $\widehat{SR}_d$ it would give 0.02055 and a lower
+  threshold, but that is not a null quantity and it is not used.
+- $\sigma_{\text{cross}}$ is computed over the sixteen Sharpes **including the maximum**, which
   slightly inflates the dispersion and therefore the threshold.
 
 ### A.4.3 Risk-free rate, $r_f = 2\%$
@@ -1495,8 +1563,8 @@ Two details, both in the conservative direction and therefore worth stating:
 A convention already declared elsewhere in the report, applied as $r_f/252$ per trading day. It is
 not calibrated on anything: it is fixed a priori, and it is ours, not the platform's, whose own
 rate over this window is about 2.7% (§A.8). Its effect on the result is bounded either way: the rate
-enters only through the excess return in $\widehat{SR}_d$, and the DSR of §A.6.2 is 99.6% at
-$r_f = 1\%$, 99.0% at 2%, 98.4% at about 2.7%, and 98.0% at 3%.
+enters only through the excess return in $\widehat{SR}_d$, and the DSR of §A.6.2 is 99.5% at
+$r_f = 1\%$, 98.8% at 2%, 98.1% at about 2.7%, and 97.6% at 3%.
 
 Not to be confused with the margin financing rate discussed elsewhere (3.5%): that is the cost of
 borrowed capital, this is the term subtracted in the numerator of the Sharpe ratio. They are two
@@ -1528,15 +1596,16 @@ as well, because the SE goes as $1/\sqrt{n}$.
 
 | | $\widehat{SR}$ | $n$ | denominator | $z$ | DSR |
 |:---|---:|---:|---:|---:|---:|
-| trading days | 0.08694 | 2011 | 0.92150 | 2.3402 | **99.04%** |
-| calendar days | 0.07214 | 2922 | 0.92182 | 2.3401 | **99.04%** |
+| trading days | 0.08694 | 2011 | 0.92150 | 2.2728 | **98.85%** |
+| calendar days | 0.07214 | 2922 | 0.92182 | 2.2727 | **98.85%** |
 
 There is therefore no knob to turn: the conclusion is the same whichever convention is adopted.
 The invariance holds to the precision reported rather than exactly. Besides the constant $-1$
 above, the dilution of the moments is itself an approximation, because the $m^2$ term in
 $m_2 = \sum_i r_i^2/n - m^2$ scales with $\kappa^2$ and not with $\kappa$, and the same applies to
 the centring terms of the third and fourth moments. Redoing the whole calculation on the calendar
-series from the raw power sums, with none of these approximations, gives 99.0% again.
+series from the raw power sums, with none of these approximations, gives the same figure to
+within a hundredth of a point.
 
 **Corollary.** What makes the DSR of this appendix invariant is that its threshold $SR_0$ is built
 from the standard error and therefore rescales with the sampling, together with everything else.
@@ -1621,23 +1690,24 @@ $\widehat{SR}_d = (m - r_f/252)/s = 0.08694$.
 
 ### A.6.2 Main result
 
-With $\text{SE} = 0.02234$ and $N = 14$:
+With $\text{SE} = 0.02234$ and $N = 16$:
 
-$$SR_{0,d} = 0.02234 \times 1.7384 = 0.03884$$
+$$SR_{0,d} = 0.02234 \times 1.8005 = 0.04022$$
 
-$$z = \frac{(0.08694 - 0.03884)\sqrt{2010}}{\sqrt{1 - 2.011 \cdot 0.08694 + \frac{13.703 - 1}{4}\cdot 0.08694^2}} = \frac{2.1570}{0.9215} = 2.341$$
+$$z = \frac{(0.08694 - 0.04022)\sqrt{2010}}{\sqrt{1 - 2.011 \cdot 0.08694 + \frac{13.703 - 1}{4}\cdot 0.08694^2}} = \frac{2.0946}{0.9215} = 2.273$$
 
-$$\boxed{\text{DSR} = \Phi(2.341) = \mathbf{99.04\%}}$$
+$$\boxed{\text{DSR} = \Phi(2.273) = \mathbf{98.85\%}}$$
 
-With the SE corrected for the actual moments (0.02055) the value rises to **99.36%**.
+With the exact null value of the SE, $1/\sqrt{n} = 0.02230$, the threshold is 0.04015 and the
+DSR 98.86%: the plug-in costs a hundredth of a point.
 
 **How the figure should be stated.** It is a confidence level in the sense of §A.2, equivalently
 the complement of a one-sided p-value, and not a posterior probability, so the defensible wording
-is: *under the null hypothesis that all fourteen
+is: *under the null hypothesis that all sixteen
 configurations have a true Sharpe of zero, the observed maximum is incompatible with selection
-noise at the 1% level* ($z = 2.34$, $p = 0.0096$, one-sided). This says the same thing as
-"DSR = 99.04%" and claims nothing the construction does not support. The level is nominal rather
-than exact, for the reason given in §A.10.
+noise at the 5% level* ($z = 2.27$, $p = 0.012$, one-sided). This says the same thing as
+"DSR = 98.85%" and claims nothing the construction does not support. The level is nominal rather
+than exact, for the reasons given in §A.10.
 
 ### A.6.3 Consistency check of the instrumentation
 
@@ -1699,7 +1769,7 @@ open.
 
 | $N$ | Gumbel bracket | $SR_{0,d}$ | DSR |
 |---:|---:|---:|---:|
-| 14 | 1.7384 | 0.03884 | **99.04%** |
+| 16 | 1.8005 | 0.04022 | **98.85%** |
 | 50 | 2.2763 | 0.05086 | 96.04% |
 | **65** | 2.3751 | 0.05306 | **95.03%** |
 | 100 | 2.5306 | 0.05654 | 93.04% |
@@ -1707,15 +1777,15 @@ open.
 | 1,000 | 3.2551 | 0.07272 | 75.54% |
 
 The exact 95% threshold falls at $N = 65.5$. The conclusion therefore stays above 95% up to
-**$N \approx 65$ trials**, vs. the actual 14: a margin of about a factor of five on the number
-of configurations it would have been legitimate to explore. With the SE corrected for the moments
-the threshold moves to $N \approx 117$.
+**$N \approx 65$ trials**, vs. the actual 16: a margin of about a factor of four on the number
+of configurations it would have been legitimate to explore. With the exact null SE the threshold
+moves to $N \approx 66$.
 
 It is a solid margin but not an unlimited one, and this is the correct formulation of the result.
 
 **For comparison, the Bailey and López de Prado specification.** Bringing
-$\sigma_{\text{cross}} = 0.06917$ into daily units, that is, dividing it by 13.173 (§A.4.5), the
-DSR is 99.99% at $N = 14$, 99.94% at $N = 10^4$ and 99.63% at $N = 10^9$: no number of trials
+$\sigma_{\text{cross}} = 0.06795$ into daily units, that is, dividing it by 13.173 (§A.4.5), the
+DSR is 99.99% at $N = 16$, 99.94% at $N = 10^4$ and 99.65% at $N = 10^9$: no number of trials
 brings the conclusion down. This total insensitivity is not robustness; it is the diagnostic
 symptom that the cross-sectional dispersion is too small to be a sensible null dispersion when
 the trials are as correlated as these. The number is reported for completeness, not offered as a
@@ -1819,20 +1889,20 @@ equal Sharpe, a distribution with positive skewness is preferable.
 ## A.10 Limitations
 
 **The DSR corrects for selection within the family, not for the choice of the family.** The
-fourteen configurations are minor variants of the same strategy, on the same instrument, over the
+sixteen configurations are minor variants of the same strategy, on the same instrument, over the
 same window. The test answers: *given this family, is the best distinguishable from the family's
 noise?* It does not answer: *does intraday momentum on SPY have edge?* That selection took place
 upstream, at the moment the family was published because it worked, and no correction applied
 downstream can recover it.
 
-**The threshold is estimated, not known.** In a Wald test the null value $\theta_0$ is a constant
-fixed in advance. Here $SR_0 = \hat\sigma \times 1.7384$ depends on $\hat\sigma$, which in turn
-depends, through the plug-in of §A.4.2, on the same $\widehat{SR}_d$ that stands in the numerator.
-Numerator and threshold are therefore correlated, and the variance of $\widehat{SR}_d - SR_0$ is not
-the $\text{SE}^2$ that the denominator uses: a covariance term is missing. The direction is not
-neutral, if $\hat\sigma$ is overstated the test is conservative and if understated
-anti-conservative, and the level is to be read as nominal. The PSR against zero does not have this
-problem, because there $SR^* = 0$ is a true constant; it is specific to the deflated version.
+**The threshold depends on the data only through a plug-in.** In a Wald test the null value
+$\theta_0$ is a constant fixed in advance. Under $H_0$ the standard error of a zero Sharpe is
+$1/\sqrt{n}$, a constant, and so would be the threshold $SR_0$. The main specification of §A.4.2
+plugs the observed $\widehat{SR}_d$ into the SE instead, which ties $SR_0$ to the same
+$\widehat{SR}_d$ that stands in the numerator, so that the variance of $\widehat{SR}_d - SR_0$ is
+not exactly the $\text{SE}^2$ the denominator uses. The tie is immaterial here: with the constant
+null value, 0.02230 instead of 0.02234, the DSR is 98.86% instead of 98.85%. The level remains
+nominal because of the approximations below, not because of the threshold.
 
 **Independence of observations.** The factor $\sqrt{n-1}$ assumes independent daily returns.
 Residual autocorrelation would reduce the effective sample size and therefore the DSR. It was not
@@ -1855,14 +1925,14 @@ question, and it remains open; see §8.
 
 ## A.11 Conclusions
 
-1. The Sharpe of 1.075 of S4′ tight **is not an artifact of the selection among fourteen
-   configurations**: DSR = 99.04% under the conservative specification, 99.36% correcting the SE
-   for the actual moments. The test is against the selection threshold $SR_0$, under the null
-   that all fourteen configurations have a true Sharpe of zero: it says that S4′ is not selection
+1. The Sharpe of 1.075 of S4′ tight **is not an artifact of the selection among sixteen
+   configurations**: DSR = 98.85% under the conservative specification, 98.86% with the exact null
+   standard error. The test is against the selection threshold $SR_0$, under the null
+   that all sixteen configurations have a true Sharpe of zero: it says that S4′ is not selection
    noise, not that it is better than S4, from which it differs by +0.033 in log return over eight
    years (§6).
 
-2. The result holds up to **about 65 trials** vs. the actual 14, a margin of a factor of five
+2. The result holds up to **about 65 trials** vs. the actual 16, a margin of a factor of four
    on the parameter a critique could focus on. The standard Bailey and López de Prado specification
    would give 99.99% and insensitivity to any $N$, but that insensitivity is an artifact of the
    correlation between the trials and should not be claimed.
@@ -1883,8 +1953,10 @@ question, and it remains open; see §8.
 6. The choice to compute the DSR from the raw moments (§A.5) rather than from the PSR in
    QuantConnect's interface turns out to be necessary, not merely prudent: that statistic,
    recomputed today on unchanged code, differs by 39 to 46 percentage points from the value
-   preserved in the result files, on all five published strategies (§A.2.1). A figure that moves on
-   a fixed input cannot serve as a basis, whichever of the two values is the right one.
+   preserved in the result files, on all five published strategies (§A.2.1), because the platform
+   has changed its definition in between (§7). A figure whose definition changes under the same
+   name cannot serve as a basis for comparison across dates, and neither version tests against a
+   Sharpe of zero.
 
 # References
 

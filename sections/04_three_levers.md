@@ -6,15 +6,16 @@ the ladder apart and asks what each rung is worth on its own.
 
 ## 4.1 The design
 
-S2 and S4, the two configurations on which the paper builds its final comparison, differ on
-**two** axes rather than one. S2 requires three confirmations at entry (band, EMA, VWAP), the
-third of which does not appear in either published description, since equations (7) and (8) of
-the paper state two, and it exits on a simple check every 30 minutes. S4 requires two (band, EMA)
-and exits on a check every 5 minutes that must be confirmed on four consecutive bars. Comparing
-them directly does not say which of the two changes produced the difference.
+S2 and S4, the two configurations on which the paper builds its final comparison, differ on **two**
+axes rather than one. S2 requires three confirmations at entry (band, EMA, VWAP), the third of which
+appears in neither published description: equations (7) and (8) of the paper (§4.2) and the README
+both list only the band and the EMA. It exits on a simple check every 30 minutes. S4 requires two
+(band, EMA) and exits on a check every 5 minutes that must be confirmed on four consecutive bars.
+Comparing them directly does not say which of the two changes produced the difference.
 
 The two missing cells were built: **S2′** is S2 without the VWAP entry condition, **S4′** is S4
-with that condition. Neither is repository code, and their rows sit in a separate, labeled table.
+with that condition. A third, **S3′**, is S3 with the same condition and is used in §4.4. None is
+repository code, and their rows sit in a separate, labeled table.
 
 The third axis is not a design choice but a point on which the published descriptions differ, and
 it is not where one would expect. The code exits a long position when $P < \max(UB,\ \text{vwap})$,
@@ -73,8 +74,9 @@ under both thresholds.
 
 One point needs clarifying at once, because it bounds the claim: all four cells of the table have
 the EMA filter. What is established is that the VWAP is additive **with respect to the exit
-structure, in the presence of the EMA**. The cell that would allow the check in the absence of the
-EMA does not exist in the data, and the point returns in §4.4.
+structure, in the presence of the EMA**. The check in the absence of the EMA would need band + VWAP
+under both exit structures; only the one with the exit package was run (S3′), and the point returns
+in §4.4.
 
 The ratio between how much the filter removes and how much it is worth is the interesting part. It
 blocks between 1.4% and 1.7% of entries, 22 to 26 trades depending on the cell out of a total of
@@ -89,7 +91,9 @@ The repository introduces two things together in moving from S2 to S4: the exit 
 30 to 5 minutes (cadence), and confirmation on four consecutive bars is required (persistence).
 The two appear inseparable, but the cell that separates them already exists in the repository:
 **S1 is S3 without the gate**, identical in everything else, with the same 30/5 intervals, the
-same threshold formula, no EMA filter and no VWAP filter. The package therefore decomposes:
+same threshold formula, no EMA filter and no VWAP filter. The paper itself describes Strategy 3 in
+these terms, as Strategy 1 with the persistence counter added (paper, §4.3); what it does not do is
+measure the two steps separately, which is what the table below does:
 
 [Table T9]
 
@@ -102,16 +106,21 @@ an artifact of the threshold.
 
 **The gate offsets exactly that cost.** Under `loose` the cadence removes 0.049 and the gate
 returns 0.098: the net balance of the package is +0.049, so the gate recovers the cost and adds a
-quantity of the same order. Under `tight` the recovery is much larger (+0.238) because the exit
-threshold is a stop at zero or negative distance, and persistence is the only thing that keeps a
-position open.
+quantity of the same order. Under `tight` the recovery is much larger (+0.238). There the exit
+threshold typically starts at, or above, the level that authorized the entry (§4.1): a long enters
+when the price crosses the upper band, and the same band, which widens during the session, is the
+level it must stay above. Without persistence, the first pullback below it closes the position; with
+four consecutive confirmations required, the position survives pullbacks shorter than twenty
+minutes. The gate is doing the work that a stop placed some distance below the entry would otherwise
+do.
 
-The conclusion to take away is not that the gate is worth zero, but **that it is not a standalone
-source of edge**: it compensates for a cadence choice made two strategies earlier. The repository
-presents S4 as an improvement on S2; on this reading, what S4 does is pay a cost (the 5-minute
-cadence) and then buy its remedy (the gate).
+The conclusion to take away is not that the gate is worth zero, but **that it cannot be judged apart
+from the cadence**: part of what it returns only compensates for a cadence choice made two
+strategies earlier. The repository presents S4 as an improvement on S2; on this reading, what S4
+does is pay a cost (the 5-minute cadence) and then buy its remedy (the gate), which returns more
+than the cost under both thresholds.
 
-## 4.4 The EMA substitutes for the gate, the VWAP does not
+## 4.4 The EMA substitutes for the exit package, the VWAP does not
 
 The same package measured in the presence of the other two entry filters:
 
@@ -119,8 +128,8 @@ The same package measured in the presence of the other two entry filters:
 
 The second and third columns are identical to each other and different from the first. That is:
 **adding the VWAP filter does not change the value of the exit package; adding the EMA filter
-brings it to zero.** The EMA × package interaction is $-0.046$ under `tight` and $-0.053$ under
-`loose`.
+reduces it by about 0.05, from 0.173 to 0.127 under `tight` and from 0.049 to about zero under
+`loose`.** The EMA × package interaction is $-0.046$ under `tight` and $-0.053$ under `loose`.
 
 The paper does not leave this point implicit. In the section devoted to
 S4 it states that the two mechanisms "are structurally independent: the EMA filter operates at the
@@ -145,31 +154,26 @@ forward. The paper writes "*potentially* synergistic", and that caution should b
 the statement was conditional. It has been tested here, and the measured interaction points the
 other way.
 
-The full design would have four columns, one for each combination of the two entry filters, and the
-fourth, band + VWAP **without** EMA, does not exist in the data. A limit follows, and it is this:
-the EMA turns out to be a substitute for the package **as measured in the absence of the
-VWAP**, and the VWAP turns out to be additive **as measured in the presence of the EMA**. Each
-conclusion holds at one level of the other filter only, and the two cross-checks, together with the
-three-way interaction, would require four backtests that were not run.
-
-EMA filter and persistence gate are **substitutes**: they do the same job, keeping out or closing
-breakouts that do not continue, and having both does not pay twice. The VWAP condition is
-different: it acts on something neither of the other two intercepts.
+The EMA filter and the exit package are **substitutes**: both deal with breakouts that do not
+continue, one by keeping them out and the other by not closing on their noise, and having both
+does not pay twice. The VWAP condition does not overlap with the package: its value is the same
+under both exit structures (T8).
 
 Hence the answer to the opening question. Under the specified and implemented threshold, the best
-of the fourteen is S4′: it is S4 plus the only one of the three entry conditions that does not
-overlap with the others, and therefore the only one that can add its full contribution. The lead is
+of the sixteen is S4′: it is S4 plus the one entry condition that does not overlap with the exit
+package. The lead is
 not uniform across the two axes, however: under `loose` the exit package is worth zero and S2,
 which is repository code, is on a par with S4′ (259.7 vs. 258.6 at 0 bps). The full comparison is
 in §6.
 
-The design also points to a cell that has not been tried. If the EMA filter and the gate are
-substitutes, the combination gate + VWAP **without** EMA, that is, S3 with the VWAP filter added,
-would avoid the overlap and keep the two levers independent. It has not been measured, and it
-cannot be predicted either: estimating it would mean extrapolating the effect of the VWAP to a
-level of the EMA at which it was never measured, that is, assuming exactly the interaction that is
-missing. The statement that S4′ is the best should therefore be read for what it is: the best
-among the configurations tried, not among those possible. The limit is stated in §8.
+One combination of the two entry filters was missing from the design, band + VWAP **without**
+EMA. It was run with the exit package, as **S3′**, to check whether S4′ is beaten once the EMA is
+dropped. It is not: S4′ beats it by 0.045 in log wealth under `tight` and 0.030 under `loose`.
+The run also shows that the two entry filters are not independent: with the exit package in
+place, the VWAP is worth 0.0080 without the EMA and 0.0334 with it (0.0065 and 0.0285 under
+`loose`), a positive interaction, so they are **complements** (T10). The same combination with the
+30′ simple exit was not run, so each conclusion of the table above still holds at one level of the
+other filter only (§8).
 
 ## 4.5 How much the zero-distance threshold weighs
 
@@ -222,11 +226,9 @@ less, but it has a lower $w_{sum}$ and therefore decays more slowly as costs ris
 
 [Table T11]
 
-The crossover falls at **0.209 bps** on S3 and **0.357 bps** on S4. Whether that is inside the
-range of realistic execution costs rests on an assumption this report does not measure: 0.25 to
-0.5 bps per fill is used throughout as a working range for a liquid ETF traded at the market, not
-a calibrated figure (§8). If costs fall in that range, `loose` wins everywhere, including where it
-lost at zero cost, and the exit that appears only in the README's description is better than the
-one the paper specifies.
+The crossover falls at **0.209 bps** on S3 and **0.357 bps** on S4. Since the 0 bps runs already pay
+the quoted bid-ask spread (§1.1), these are costs on top of it: `loose` overtakes `tight` on S3 and
+S4 only if execution is worse than the quote by more than that. This report does not measure how
+large that excess is, so it cannot say which of the two exits wins once it is included (§8).
 
 [Figure F2]

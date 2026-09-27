@@ -3,10 +3,11 @@
 **With this code architecture, a single instrumented backtest at 0 bps contains every cost level
 in closed form.**
 
-The question is not invented for the occasion: the paper raises it itself. Among the lines of
-future work listed in §6.7 is "re-running with 2× and 5× baseline transaction costs to establish
-the break-even cost level". What follows answers that question for every cost level rather than for
-two, and without re-running anything.
+The question this section answers, how much execution cost the strategy can absorb before its return
+is gone, is not invented for the occasion: the paper raises it itself. Among the lines of future
+work listed in §6.7 is "re-running with 2× and 5× baseline transaction costs to establish the
+break-even cost level". What follows answers it for every cost level rather than for two, from the
+single 0 bps run; the forty runs at higher costs in §3.6 serve only to check the answer.
 
 ## 3.1 The two invariances everything depends on
 
@@ -18,13 +19,16 @@ different experiment and has to be re-run.
 The repository's code has two properties that break that circle.
 
 The first: **the signal does not look at execution prices**. Entries and exits in all five
-strategies evaluate `data[symbol].close`, that is, the market price of the bar, not the price at
-which our order was filled. Slippage moves the second and leaves the first intact, so it does not
-touch the condition that decides whether to open or close.
+strategies compare `data[symbol].close`, the market price of the bar, with bands and averages
+computed from market prices. No rule refers to the price at which an earlier order was filled, as a
+stop-loss measured from the entry price would. Slippage changes fill prices and leaves market prices
+intact, so it cannot change when a position opens or closes.
 
 The second: **sizing is relative to equity**. `set_holdings` receives a fraction of net equity,
-$\Lambda_t$, not a number of shares. A smaller account buys proportionally fewer shares, but the
-position remains the same fraction of capital.
+$\Lambda_t$, not a number of shares, and buys $\Lambda_t E/P$ shares. A smaller account buys
+proportionally fewer shares, but the position remains the same fraction of capital. With a fixed
+number of shares instead, an account reduced by costs would hold a larger fraction of its capital,
+and the costs would change the exposure itself.
 
 It follows that the set of trade instants $T = \{t_1,\dots,t_N\}$, the direction of each, and the
 weight of each as a fraction of equity are **identical at every cost level**. What changes is how
@@ -76,7 +80,7 @@ where it should.
 
 The model reconstructs **slippage**. Commissions are not modeled at all: they are already inside
 $E_0$, because the 0 bps run is not a run without costs but a run without *additional* slippage,
-one that pays the Interactive Brokers fee model in full. The horizontal axis of every chart is
+one that pays the Interactive Brokers fee model in full and the quoted bid-ask spread (§1.1). The horizontal axis of every chart is
 therefore "additional slippage", not "total cost".
 
 For this to work only one thing is needed: that the commission, **as a fraction of equity**, be
@@ -89,10 +93,11 @@ and both $\Lambda_i$ (which comes from SPY's 14-day volatility, a market quantit
 **invariant in $b$**. The commission takes the same fraction of equity at every cost level: it
 multiplies every path by the same sequence of factors, and cancels in the ratio $E_b/E_0$. This
 does not require the fraction to be constant *over time*, and it is not: it goes as $1/P_i$, so
-over the sample it halves while SPY moves from about 240 to about 570 dollars. What the model
+over the sample it falls to about 37% of its initial value while the price SPY trades at in the
+backtest, adjusted for dividends, moves from about 207 to about 564 dollars. What the model
 needs is that the fraction be the same in the two runs **at the same instant**, and it is, because
 at that instant both see the same price and the same leverage. On the order of magnitude, half a cent
-per share is equivalent to a tenth to a fifth of a basis point of slippage, a fraction of what is
+per share is equivalent to a tenth to a quarter of a basis point of slippage, a fraction of what is
 being measured on the cost axis.
 
 That commissions do follow equity can be seen in the raw data. Between the S0 `tight` run at 0 bps
@@ -108,7 +113,7 @@ an amount increasing in $b$. It does not.
 
 The declared fee model also has a minimum of 1 dollar per order, and a fixed minimum is not
 proportional to equity. That is not the regime in operation: the average order pays between 3.98
-and 4.77 dollars across all fourteen configurations, four to five times the threshold, and not
+and 4.77 dollars across all sixteen configurations, four to five times the threshold, and not
 even the most penalized run gets there, since S1 `tight` at 2 bps closes at $-53\%$ and still pays
 1.87 dollars per order. Where the minimum could bite, on the most de-leveraged days, it would make
 commissions slightly *more* than proportional: the error is bounded and of known sign. The one run
@@ -140,31 +145,34 @@ point where capital goes to zero the logarithm amplifies, and the same 0.185pp i
 weighs far more. This is not a failure of the model; it is the model's natural measure blowing up
 where wealth goes to zero.
 
-## 3.7 The $\bar w = \Lambda$ identity
+## 3.7 The $\bar w \approx \Lambda$ relation
 
-The average weight per order, $\bar w = w_{sum}/N$, lies between 1.8052 and 1.8282 across all
-fourteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
+The average weight per order, $\bar w = w_{sum}/N$, lies between 1.8048 and 1.8282 across all
+sixteen configurations, vs. an average leverage `lambda_avg` $= 1.8056$.
 
 [Table T7]
 
-This is not an empirical regularity: it is an identity by construction. The strategies are
-exclusively intraday, so every position opens from zero and closes in full within the day; every
-order therefore moves a notional equal to 100% of the target position, and the weight of the order
-coincides with the leverage of the moment. The mean of the weights can only coincide with the time
-average of the leverage.
+This is not an empirical regularity: it follows from how the strategies trade. They are exclusively
+intraday, so every position opens from zero and closes in full within the day. An entry moves
+exactly the target position, so its weight is the leverage of that day, $\Lambda_t$; an exit closes
+the same shares at a different price, so its weight differs from $\Lambda_t$ only by the trade's own
+return, $w_{exit} = \Lambda_t(1+x)/(1+\Lambda_t x)$ for a long whose price has moved by $x$. The
+mean of the weights is therefore the leverage averaged over orders. It comes close to the average
+over days, 1.8056, without having to equal it: a strategy that trades more often on quiet days, when
+$\Lambda_t$ sits at the cap of 2, has a slightly higher $\bar w$.
 
 **Practical consequence**: substituting $w_{sum} \approx 1.81\,N$ into the break-even formula,
 
 $$b^* \approx \frac{10^4\,\ln(1+R_0)}{1.81\,N}$$
 
 the cost tolerance of any strategy in this class can be computed from the README table alone,
-return and number of orders, before running any backtest. Verified out of sample on five
-configurations: S2 1.90 vs. a measured 1.903; S3 1.96 vs. 1.957; S4 2.09 vs. 2.088;
+return and number of orders, before running any backtest. Checked on five configurations against
+the exact value from $w_{sum}$: S2 1.90 vs. 1.903; S3 1.96 vs. 1.957; S4 2.09 vs. 2.088;
 S0 `tight` 1.669 vs. 1.670; S0 `loose` 2.113 vs. 2.107.
 
-The identity has two deviations, both expected. `hold24` has $\bar w = 0.0434$, because
+The relation has two deviations, both expected. `hold24` has $\bar w = 0.0434$, because
 `set_holdings` in that case rebalances only the delta relative to the position already open: it
-neither opens nor closes whole positions, and the identity does not apply for the same reason it
+neither opens nor closes whole positions, and the relation does not apply for the same reason it
 holds elsewhere. The `intraday` benchmark has $\bar w = 1.79416$, a gap of $-0.63\%$: the
 shortfall in $w_{sum}$ is 45.73, that is, 25.5 delta-type fills at the observed average weight,
 vs. 27 orders missing relative to the expected total of $2\times 2{,}012$. Every night of
@@ -177,5 +185,5 @@ explanation read from two independent sides.
 From the equity curve alone one cannot recover the number of orders, the win rate, the average
 gain and loss per trade, the expectancy, the commissions or the turnover: these are quantities that
 require direct instrumentation of the backtest, not its return series. The method gives the cost
-map, not the operating statement, which is why the fourteen configurations were run at 0 bps one
+map, not the operating statement, which is why the sixteen configurations were run at 0 bps one
 by one anyway.

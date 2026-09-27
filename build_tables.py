@@ -8,7 +8,7 @@ produces it, not a text editor.
 
 Inputs (all under data/):
   backtest_data_strategies.csv   50 rows: S0 to S4 x {tight, vwap (= loose)} x 5 slippage levels
-  backtest_data_prime.csv         4 rows: S2', S4' at 0 bps, both exit variants
+  backtest_data_prime.csv         6 rows: S2', S3', S4' at 0 bps, both exit variants
   backtest_data_benchmarks.csv    4 rows: bench intraday (9:31), bench hold24,
                                   bench intraday_1000 (10:00 long), bench intraday_1000_short
 
@@ -23,8 +23,8 @@ Output, written next to this file:
                        the static nomenclature table of §4), with their captions. assemble.py reads
                        this file and nothing else for the [Table ...] placeholders.
     supplementary.md   the blocks that are not tables of the report but produce numbers cited in
-                       the text: T14 (P&L by direction, §2), the opening-window threshold (§8) and
-                       every figure of Appendix A. With --all, two further diagnostic blocks
+                       the text: T14 (P&L by direction, §2), the PSR at the two dates (§7), the
+                       opening-window threshold (§8) and every figure of Appendix A. With --all, two further diagnostic blocks
                        (commission-path test, opening-window decomposition).
 
 Both files are overwritten on every run; do not edit them by hand. The workflow is:
@@ -92,7 +92,6 @@ DSR_RAW = dict(
     sr_d=0.08694,         # daily Sharpe in excess of r_f = 2%
     g3=2.011,             # skewness
     g4=13.703,            # kurtosis, non-excess
-    sigma_cross=0.06917,  # cross-sectional dispersion of the 14 QC Sharpes (ddof = 1)
     net_profit=2.71374,   # for the consistency check of Appendix A, §A.6.3
     kappa=CAL_DAYS / NYSE_SESSIONS,
     rf=RF,
@@ -115,6 +114,9 @@ def signed(x, nd):
 
 def variant_label(v):
     return "loose" if v == "vwap" else "tight"
+
+
+NUM_WORDS = {14: "fourteen", 16: "sixteen", 18: "eighteen", 20: "twenty"}
 
 
 def prime_name(s):
@@ -166,6 +168,7 @@ def load_authors_json():
             orders=int(st["Total Orders"]),
             psr=float(st["Probabilistic Sharpe Ratio"].rstrip("%")),
             turnover=float(st["Portfolio Turnover"].rstrip("%")),
+            sd=float(st["Annual Standard Deviation"]),
         )
     return out
 
@@ -210,7 +213,8 @@ def build_t1(df):
         "Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the "
         "same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all "
         f"five rows; the PSR differs by {fmt(psr_diffs[best],1)} to {fmt(psr_diffs[worst],1)} points "
-        f"({fmt(np.mean(list(psr_diffs.values())),1)} on average). See §1 and §7."]
+        f"({fmt(np.mean(list(psr_diffs.values())),1)} on average), because the platform now subtracts the "
+        "risk-free rate inside it and in March it did not. See §1 and §7."]
     return "\n".join(lines)
 
 
@@ -328,7 +332,7 @@ def build_t12(bench):
 # ================================================================================================
 
 def build_t4(df, prime, bench):
-    L = ["### T7. The $\\bar w = \\Lambda$ identity, break-even and ratio to turnover",
+    L = ["### T7. The $\\bar w \\approx \\Lambda$ relation, break-even and ratio to turnover",
          "|  | variant | orders | $w_{sum}$ | $\\bar w$ | $b^*$ (bps) | $w_{sum}/(\\text{turn}/100)$ |",
          "|---|---|---|---|---|---|---|"]
     wbars = []
@@ -352,16 +356,18 @@ def build_t4(df, prime, bench):
     ratios = [r["w_sum"] / (r["turnover"] / 100) for frame in (df[df["bps"] == 0.0], prime, bench)
               for _, r in frame.iterrows()]
     L.append("")
-    L.append(f"Over the fourteen strategy configurations $\\bar w \\in [{fmt(min(wbars),4)};\\ {fmt(max(wbars),4)}]$, "
+    L.append(f"Over the {NUM_WORDS[len(wbars)]} strategy configurations $\\bar w \\in [{fmt(min(wbars),4)};\\ {fmt(max(wbars),4)}]$, "
              f"vs. `lambda_avg` $= {fmt(lam,4)}$. The two deviations (hold24 and the intraday benchmark) are "
              "discussed below.")
     L.append("")
     L.append(f"Ratio to LEAN's turnover: $w_{{sum}}/(\\text{{turnover}}/100) \\in [{fmt(min(ratios),1,True)};\\ "
-             f"{fmt(max(ratios),1,True)}]$ on all eighteen rows, vs. {CAL_DAYS:,} calendar days ({NYSE_SESSIONS:,} NYSE "
-             "sessions) in the window. LEAN averages the daily turnover over the samples of the same series it "
-             "uses for the performance statistics, so this ratio counts those samples directly: eighteen rows say "
-             "the series has one point per calendar day, and they say it without using any moment of the returns "
-             "(Appendix A, §A.8).")
+             f"{fmt(max(ratios),1,True)}]$ on all {NUM_WORDS[len(ratios)]} rows, vs. {CAL_DAYS:,} calendar days ({NYSE_SESSIONS:,} NYSE "
+             "sessions) in the window. LEAN's Portfolio Turnover is the average, over its daily samples, of the "
+             "notional traded that day divided by equity, and $w_{sum}$ is the same sum taken fill by fill; their "
+             f"ratio is therefore the number of samples LEAN used. On all {NUM_WORDS[len(ratios)]} rows it is the number "
+             "of calendar days, not of trading sessions: LEAN keeps one point per calendar day, with zero on days "
+             "without trading, and it computes volatility, Sharpe ratio and PSR on that same series. Appendix A, "
+             "§A.8 reaches the same conclusion from the moments of the returns; this check uses only the volume traded.")
     return "\n".join(L)
 
 
@@ -426,7 +432,8 @@ def build_t7_t8(df, prime):
 
     t8 = ["### T10. Effect of the **exit structure**, 30′ simple to 5′ + gate $N=4$", "",
           "Eight-year log return, first figure `tight` and second `loose`. The columns are the four",
-          "combinations of the two entry filters; the design has four and the data contain three.", "",
+          "combinations of the two entry filters; the fourth would need band + VWAP with the 30′ simple exit,",
+          "which was not run (S3′ supplies that combination with the exit package only).", "",
           "| value of the exit package | no EMA, no VWAP ($S3-S0$) | EMA, no VWAP ($S4-S2'$) | EMA and VWAP ($S4'-S2$) | no EMA, VWAP |",
           "|---|---|---|---|---|"]
     c = {}
@@ -440,6 +447,14 @@ def build_t7_t8(df, prime):
            f"- **effect of the VWAP on the package** (col. 3 minus col. 2), measured with the EMA present: "
            f"{signed(c['tight'][2]-c['tight'][1],5)} and {signed(c['loose'][2]-c['loose'][1],5)}. Zero interaction, "
            "so **additive**"]
+    e = {lab: (lrp("3 prime", v) - lr(3, v), lrp("4 prime", v) - lr(4, v), lrp("4 prime", v) - lrp("3 prime", v))
+         for lab, v in V}
+    t8 += [f"- **effect of the EMA on the VWAP**, with the exit package in place: the VWAP is worth "
+           f"{signed(e['tight'][0],5)} without the EMA ($S3'-S3$) and {signed(e['tight'][1],5)} with it ($S4'-S4$) "
+           f"under `tight`, {signed(e['loose'][0],5)} and {signed(e['loose'][1],5)} under `loose`; interaction "
+           f"{signed(e['tight'][1]-e['tight'][0],5)} and {signed(e['loose'][1]-e['loose'][0],5)}. Positive, so the "
+           f"two entry filters are **complements**. S4′ beats S3′ by {signed(e['tight'][2],5)} and "
+           f"{signed(e['loose'][2],5)}"]
 
     t8b = ["### T9. Decomposition of the exit package (no EMA, no VWAP)", "",
            "S0 = 30′ simple; S1 = 30/5 without gate; S3 = 30/5 with gate $N=4$. S1 and S3 differ only in",
@@ -494,7 +509,7 @@ def build_t10(df):
     L.append("")
     L.append("The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The "
              "hypothesis \"turnover, not the number of trades, predicts the drag\" cannot be tested on these data: "
-             "by the identity of T7 the two are proportional, so there is no variance to explain.")
+             "by the relation of T7 the two are almost proportional, so there is almost no variance to explain.")
     return "\n".join(L)
 
 
@@ -515,8 +530,8 @@ def build_t11(df, prime):
     s4p, s4 = prow(prime, "4 prime", "tight"), row(df, 4, "tight")
     lead = log_ret(s4p["net_profit"]) - log_ret(s4["net_profit"])
     L.append("")
-    L.append("The 0.25 and 0.5 bps columns of S2′ and S4′ are **predicted** by the model of T6, not measured: for "
-             "these two cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is "
+    L.append("The 0.25 and 0.5 bps columns of S4′ are **predicted** by the model of T6, not measured: for "
+             "the constructed cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is "
              f"{signed(lead,5)} in log return over eight years (T8), that is, {fmt(100*(math.exp(lead)-1),1)}% more "
              f"final capital, about {fmt(100*(math.exp(lead/YEARS)-1),1)}% per year.")
     return "\n".join(L)
@@ -620,6 +635,41 @@ def lean_psr(cal, rf):
     return 100 * NormalDist().cdf((sr - 1 / math.sqrt(252)) / est)
 
 
+def psr_two_eras(df):
+    """The PSR of the five published strategies at the two dates, from LEAN's own routine (§7).
+
+    Mean and standard deviation of the calendar series come from each run's printed Sharpe and
+    annual standard deviation, at LEAN's rate. Skewness and kurtosis are not reported per strategy,
+    so those of S4' tight (Appendix A) stand in for all five. The authors' values are reproduced
+    with no risk-free rate inside the tested Sharpe ratio, today's with the rate subtracted.
+    """
+    authors = load_authors_json()
+    if authors is None:
+        return ("### PSR at the two dates\n\n*Skipped: clone blackswan-quants/intraday-momentum "
+                "next to this script to compare against stats/strat{0..4}_8y.json.*")
+    cal = calendar_series_moments()
+
+    def psr_from_printed(sharpe, sd_ann, rf_inside):
+        sd = sd_ann / math.sqrt(252)
+        mean = (1 + RF_LEAN + sharpe * sd_ann) ** (1 / 252) - 1
+        return lean_psr(dict(cal, mean=mean, sd=sd), rf_inside)
+
+    L = ["### PSR of the published strategies at the two dates (for §7)", "",
+         "| | authors, printed | LEAN routine, no $r_f$ | reproduced, printed | "
+         f"LEAN routine, $r_f$ = {fmt(100*RF_LEAN,1)}% |",
+         "|---|---|---|---|---|"]
+    for s in "01234":
+        a, r = authors[s], row(df, s, "tight")
+        L.append(f"| S{s} | {fmt(a['psr'],3)}% | {fmt(psr_from_printed(a['sharpe'], a['sd'], 0.0),1)}% | "
+                 f"{fmt(r['psr'],3)}% | {fmt(psr_from_printed(r['sharpe'], r['ann_std'], RF_LEAN),1)}% |")
+    L += ["", "Mean and standard deviation of LEAN's calendar series from each run's printed Sharpe and annual "
+          "standard deviation; skewness and kurtosis of S4′ tight for all five, since they are not reported per "
+          "strategy. The annual standard deviation is printed to three decimals, which moves the no-$r_f$ column by "
+          "about 0.2 points either way; the remaining gaps, 0.3 points at most, come from borrowing the higher "
+          "moments of S4′."]
+    return "\n".join(L)
+
+
 def implied_risk_free():
     """The rate that reproduces each reported Sharpe, under the two readings of AnnualPerformance.
 
@@ -651,13 +701,19 @@ def gumbel_bracket(N):
     return (1 - EULER_GAMMA) * nd.inv_cdf(1 - 1.0 / N) + EULER_GAMMA * nd.inv_cdf(1 - 1.0 / (N * math.e))
 
 
-def dsr_appendix():
-    """Every number of Appendix A, from the five accumulators of the S4' tight run."""
+def dsr_appendix(df, prime):
+    """Every number of Appendix A, from the five accumulators of the S4' tight run.
+
+    The number of trials and the cross-sectional dispersion come from the 0 bps rows of the CSV files:
+    every strategy configuration with a 0 bps backtest is a trial.
+    """
     nd, r = NormalDist(), DSR_RAW
+    sharpes = pd.concat([df[df["bps"] == 0.0]["sharpe"], prime["sharpe"]])
+    NT, sigma_cross = len(sharpes), float(sharpes.std(ddof=1))
     n, sr, g3, g4, k = r["n"], r["sr_d"], r["g3"], r["g4"], r["kappa"]
     den = math.sqrt(1 - g3 * sr + (g4 - 1) / 4 * sr ** 2)
     se_gauss = math.sqrt((1 + sr ** 2 / 2) / n)
-    se_corr = math.sqrt((1 - g3 * sr + (g4 - 1) / 4 * sr ** 2) / n)
+    se_null = 1 / math.sqrt(n)                     # SE of a zero Sharpe: the exact null value
     scale = math.sqrt(252 / k)                      # QC Sharpe units -> daily units
 
     def dsr(N, sigma):
@@ -672,36 +728,37 @@ def dsr_appendix():
 
     sr_c, g3_c, g4_c, n_c = sr / math.sqrt(k), g3 * math.sqrt(k), g4 * k, CAL_DAYS
     den_c = math.sqrt(1 - g3_c * sr_c + (g4_c - 1) / 4 * sr_c ** 2)
-    z_c = (sr_c - se_gauss * gumbel_bracket(14) / math.sqrt(k)) * math.sqrt(n_c - 1) / den_c
-    z_b = (sr - se_gauss * gumbel_bracket(14)) * math.sqrt(n - 1) / den
+    z_c = (sr_c - se_gauss * gumbel_bracket(NT) / math.sqrt(k)) * math.sqrt(n_c - 1) / den_c
+    z_b = (sr - se_gauss * gumbel_bracket(NT)) * math.sqrt(n - 1) / den
 
     out = ["### Appendix A. Numbers of the Deflated Sharpe Ratio (generated)", "",
            "| quantity | value |", "|---|---|",
            f"| PSR denominator | {fmt(den,5)} |",
            f"| Gaussian SE | {fmt(se_gauss,5)} |",
-           f"| SE corrected for the moments | {fmt(se_corr,5)} |",
-           f"| Gumbel bracket, $N=14$ | {fmt(gumbel_bracket(14),4)} |",
-           f"| $SR_{{0,d}}$ | {fmt(se_gauss*gumbel_bracket(14),5)} |",
+           f"| SE under $H_0$, $1/\\sqrt{{n}}$ | {fmt(se_null,5)} |",
+           f"| Gumbel bracket, $N={NT}$ | {fmt(gumbel_bracket(NT),4)} |",
+           f"| $SR_{{0,d}}$ | {fmt(se_gauss*gumbel_bracket(NT),5)} |",
            f"| $z$ | {fmt(z_b,4)} |",
-           f"| **DSR** | **{fmt(dsr(14,se_gauss),2)}%** |",
-           f"| DSR with corrected SE | {fmt(dsr(14,se_corr),2)}% |",
+           f"| **DSR** | **{fmt(dsr(NT,se_gauss),2)}%** |",
+           f"| DSR with SE under $H_0$ | {fmt(dsr(NT,se_null),2)}% |",
            f"| 95% threshold in $N$ | {fmt(threshold95(se_gauss),1)} |",
-           f"| 95% threshold in $N$, corrected SE | {fmt(threshold95(se_corr),1)} |",
+           f"| 95% threshold in $N$, SE under $H_0$ | {fmt(threshold95(se_null),1)} |",
            f"| scale factor, QC Sharpe to daily | {fmt(scale,3)} |",
            f"| SE in QC units | {fmt(se_gauss*scale,5)} |",
-           f"| ratio SE / $\\sigma_{{cross}}$ | {fmt(se_gauss*scale/r['sigma_cross'],2)} |", "",
+           f"| $\\sigma_{{cross}}$, the {NT} QC Sharpes at 0 bps (ddof = 1) | {fmt(sigma_cross,5)} |",
+           f"| ratio SE / $\\sigma_{{cross}}$ | {fmt(se_gauss*scale/sigma_cross,2)} |", "",
            "**Invariance to the sampling convention** (must give the same DSR)", "",
            "| | $\\widehat{SR}$ | $n$ | denominator | $z$ | DSR |", "|---|---|---|---|---|---|",
-           f"| trading days | {fmt(sr,5)} | {n} | {fmt(den,5)} | {fmt(z_b,4)} | **{fmt(dsr(14,se_gauss),2)}%** |",
+           f"| trading days | {fmt(sr,5)} | {n} | {fmt(den,5)} | {fmt(z_b,4)} | **{fmt(dsr(NT,se_gauss),2)}%** |",
            f"| calendar days | {fmt(sr_c,5)} | {n_c} | {fmt(den_c,5)} | {fmt(z_c,4)} | **{fmt(100*nd.cdf(z_c),2)}%** |",
            "", "**Sensitivity to $N$** (main specification, Gaussian SE)", "",
            "| $N$ | Gumbel bracket | $SR_{0,d}$ | DSR |", "|---|---|---|---|"]
-    for N in (14, 50, 65, 100, 500, 1000):
+    for N in (NT, 50, 65, 100, 500, 1000):
         out.append(f"| {N:,} | {fmt(gumbel_bracket(N),4)} | {fmt(se_gauss*gumbel_bracket(N),5)} | {fmt(dsr(N,se_gauss),2)}% |")
     out += ["", f"**Bailey and López de Prado specification** ($\\sigma_{{cross}}$ brought into daily units by "
             f"dividing by {fmt(scale,3)})", "", "| $N$ | DSR |", "|---|---|"]
-    for N, lab in ((14, "14"), (1e4, "10^4"), (1e9, "10^9")):
-        out.append(f"| {lab} | {fmt(dsr(N, r['sigma_cross']/scale),2)}% |")
+    for N, lab in ((NT, str(NT)), (1e4, "10^4"), (1e9, "10^9")):
+        out.append(f"| {lab} | {fmt(dsr(N, sigma_cross/scale),2)}% |")
     cal = calendar_series_moments()
     sig_qc = math.sqrt(252) * cal["sd"]
     rates = implied_risk_free()
@@ -727,7 +784,7 @@ def dsr_appendix():
     def dsr_at_rf(rf):
         sr_rf = (r["m"] - rf / 252) / r["s"]
         den_rf = math.sqrt(1 - g3 * sr_rf + (g4 - 1) / 4 * sr_rf ** 2)
-        return 100 * nd.cdf((sr_rf - se_gauss * gumbel_bracket(14)) * math.sqrt(n - 1) / den_rf)
+        return 100 * nd.cdf((sr_rf - se_gauss * gumbel_bracket(NT)) * math.sqrt(n - 1) / den_rf)
     out += ["", "**Sensitivity to the risk-free convention** (main specification)", "",
             "| $r_f$ | DSR |", "|---|---|"]
     for rf in (0.01, 0.02, RF_LEAN, 0.03):
@@ -735,9 +792,9 @@ def dsr_appendix():
     # alternative annualization factor for the cross-sectional dispersion (Appendix A, §A.4.5)
     alt = math.sqrt(252)
     out += ["", f"**Alternative scale for $\\sigma_{{cross}}$**: with $\\sqrt{{252}} = {fmt(alt,3)}$ instead of "
-            f"{fmt(scale,3)}, the SE / $\\sigma_{{cross}}$ factor is {fmt(se_gauss*alt/r['sigma_cross'],2)} and the "
-            f"Bailey and López de Prado DSR is {fmt(dsr(14, r['sigma_cross']/alt),2)}% at $N=14$, "
-            f"{fmt(dsr(1e4, r['sigma_cross']/alt),2)}% at $N=10^4$, {fmt(dsr(1e9, r['sigma_cross']/alt),2)}% at $N=10^9$."]
+            f"{fmt(scale,3)}, the SE / $\\sigma_{{cross}}$ factor is {fmt(se_gauss*alt/sigma_cross,2)} and the "
+            f"Bailey and López de Prado DSR is {fmt(dsr(NT, sigma_cross/alt),2)}% at $N={NT}$, "
+            f"{fmt(dsr(1e4, sigma_cross/alt),2)}% at $N=10^4$, {fmt(dsr(1e9, sigma_cross/alt),2)}% at $N=10^9$."]
     return "\n".join(out)
 
 
@@ -868,8 +925,9 @@ SUPPLEMENTARY_HEADER = """\
 # Supplementary blocks
 
 Generated by `build_tables.py`; do not edit by hand. These blocks are not tables of the report,
-but the text cites numbers that come from them: T14 in §2, the opening-window threshold in §8,
-and every figure of Appendix A. Run with `--all` for two further diagnostic blocks.
+but the text cites numbers that come from them: T14 in §2, the PSR at the two dates in §7, the
+opening-window threshold in §8, and every figure of Appendix A. Run with `--all` for two further
+diagnostic blocks.
 """
 
 
@@ -1089,8 +1147,9 @@ def main():
         build_t13(),
         short_exposure(),
         authors_provenance(),
+        psr_two_eras(df),
         opening_window_threshold(bench),
-        dsr_appendix(),
+        dsr_appendix(df, prime),
     ]
     if "--all" in sys.argv:
         supplementary += [commissions_follow_equity(df), opening_window_decomposition(bench)]

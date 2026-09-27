@@ -18,9 +18,9 @@ at any of the subsequent levels. It is the only inversion in the whole eight-yea
 It concerns the comparison, S0 vs. S1, on which the paper builds the Momentum Paradox, and it is
 not a point against the paper. The authors make no claim on that step of Sharpe: their sentence is
 "*degrading total return (196% → 177%), Sharpe (0.835 → 0.84, a near wash), and win rate (40% →
-32%)*", and the parenthesis is theirs. They are right, and more completely than the word "near"
-suggests: +0.005 on a quantity whose standard error, from the moments in Appendix A, is two orders
-of magnitude larger, is exactly a wash. The Momentum Paradox does not rest on that number anyway
+32%)*", and the parenthesis is theirs. They are right not to lean on it: +0.005 separates two
+configurations that share most of their trades, and it reverses at the first cost level, as the
+next paragraph shows. The Momentum Paradox does not rest on that number anyway
 but on the return, which loses nineteen points and never moves in the ranking: S1 remains last at
 all five cost levels.
 
@@ -29,7 +29,7 @@ of S1 is no longer a wash but a clear deterioration, and all four metrics of tha
 stated direction. **Costs do not overturn the paper's conclusion: they sharpen it.** It is the case
 in which the strategy most penalized by costs is also the one the paper identified as the weakest,
 and the coincidence is not accidental: S1 has 4,900 orders vs. the baseline's 3,594, that is,
-the highest $w_{sum}$ of the fourteen configurations, so it is the row that decays fastest as soon
+the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon
 as the cost rises.
 
 [Figure F3]
@@ -39,7 +39,7 @@ as the cost rises.
 The paper breaks its trades down by weekday and reports the ordering Friday > Wednesday >
 Thursday > Tuesday > Monday, reading it as "a robust feature of market microstructure rather than
 a mislead caused by overfitting" (paper, §5.5, Table 9). The selection question this report
-applies to itself in §A.3 — fourteen configurations searched, one reported — applies to any
+applies to itself in §A.3 — sixteen configurations searched, one reported — applies to any
 ranking over five groups. Applying it to one's own results and not to the ranking one is checking
 would make the severity selective, so it is applied here as well.
 

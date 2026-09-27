@@ -30,7 +30,7 @@ tables measure.
 | S4 | authors | 259.235% | 1.036 | 8.4% | 40% | 3388 | 83.439% | 209.40% |
 | | reproduced | **259.177%** | **1.036** | **8.4%** | **40%** | **3388** | **44.342%** | **209.40%** |
 
-Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all five rows; the PSR differs by 39.1 to 45.8 points (41.3 on average). See §1 and §7.
+Authors: `stats/strat{s}_8y.json`, the backtest output preserved in the repository. Reproduced: the same code re-run today. Orders, Sharpe, drawdown, win rate and turnover agree within rounding on all five rows; the PSR differs by 39.1 to 45.8 points (41.3 on average), because the platform now subtracts the risk-free rate inside it and in March it did not. See §1 and §7.
 
 ---
 
@@ -157,7 +157,7 @@ Eight-year net profit (%). 40 rows, none used to calibrate the model: calibratio
 
 <!-- figures cited in §3.6: max |error| 0.185pp, mean |error| 0.038pp; residual in bps of terminal log wealth up to 1 bps: mean +0.41, sd 1.79; at 2 bps over the nine regular rows: mean +3.98, expected O(b^2) term (lower bound) 2.19; S1 tight at 2 bps: 39 bps -->
 
-### T7. The $\bar w = \Lambda$ identity, break-even and ratio to turnover
+### T7. The $\bar w \approx \Lambda$ relation, break-even and ratio to turnover
 
 |  | variant | orders | $w_{sum}$ | $\bar w$ | $b^*$ (bps) | $w_{sum}/(\text{turn}/100)$ |
 |---|---|---|---|---|---|---|
@@ -173,6 +173,8 @@ Eight-year net profit (%). 40 rows, none used to calibrate the model: calibratio
 | S4 | loose | 2,914 | 5,283.0896 | 1.8130 | 2.363 | 2,923.8 |
 | S2′ | tight | 3,498 | 6,318.6135 | 1.8064 | 1.822 | 2,923.8 |
 | S2′ | loose | 3,026 | 5,480.9952 | 1.8113 | 2.284 | 2,923.8 |
+| S3′ | tight | 3,374 | 6,089.4032 | 1.8048 | 2.080 | 2,924.1 |
+| S3′ | loose | 2,886 | 5,228.7979 | 1.8118 | 2.385 | 2,923.9 |
 | S4′ | tight | 3,336 | 6,024.5691 | 1.8059 | 2.178 | 2,924.1 |
 | S4′ | loose | 2,864 | 5,188.1921 | 1.8115 | 2.462 | 2,923.9 |
 | bench intraday | none | 3,997 | 7,171.2571 | 1.7942 | -0.282 | 2,921.7 |
@@ -180,9 +182,9 @@ Eight-year net profit (%). 40 rows, none used to calibrate the model: calibratio
 | bench 10:00 long | none | 4,001 | 7,170.0368 | 1.7921 | -0.624 | 2,921.5 |
 | bench 10:00 short | none | 4,004 | 7,171.8552 | 1.7912 | -0.512 | 2,921.9 |
 
-Over the fourteen strategy configurations $\bar w \in [1.8052;\ 1.8282]$, vs. `lambda_avg` $= 1.8056$. The two deviations (hold24 and the intraday benchmark) are discussed below.
+Over the sixteen strategy configurations $\bar w \in [1.8048;\ 1.8282]$, vs. `lambda_avg` $= 1.8056$. The two deviations (hold24 and the intraday benchmark) are discussed below.
 
-Ratio to LEAN's turnover: $w_{sum}/(\text{turnover}/100) \in [2,919.3;\ 2,924.2]$ on all eighteen rows, vs. 2,922 calendar days (2,012 NYSE sessions) in the window. LEAN averages the daily turnover over the samples of the same series it uses for the performance statistics, so this ratio counts those samples directly: eighteen rows say the series has one point per calendar day, and they say it without using any moment of the returns (Appendix A, §A.8).
+Ratio to LEAN's turnover: $w_{sum}/(\text{turnover}/100) \in [2,919.3;\ 2,924.2]$ on all twenty rows, vs. 2,922 calendar days (2,012 NYSE sessions) in the window. LEAN's Portfolio Turnover is the average, over its daily samples, of the notional traded that day divided by equity, and $w_{sum}$ is the same sum taken fill by fill; their ratio is therefore the number of samples LEAN used. On all twenty rows it is the number of calendar days, not of trading sessions: LEAN keeps one point per calendar day, with zero on days without trading, and it computes volatility, Sharpe ratio and PSR on that same series. Appendix A, §A.8 reaches the same conclusion from the moments of the returns; this check uses only the volume traded.
 
 ---
 
@@ -244,7 +246,8 @@ Orders: S0 3,594, S1 4,900, S3 3,550 (`tight`).
 ### T10. Effect of the **exit structure**, 30′ simple to 5′ + gate $N=4$
 
 Eight-year log return, first figure `tight` and second `loose`. The columns are the four
-combinations of the two entry filters; the design has four and the data contain three.
+combinations of the two entry filters; the fourth would need band + VWAP with the 30′ simple exit,
+which was not run (S3′ supplies that combination with the exit package only).
 
 | value of the exit package | no EMA, no VWAP ($S3-S0$) | EMA, no VWAP ($S4-S2'$) | EMA and VWAP ($S4'-S2$) | no EMA, VWAP |
 |---|---|---|---|---|
@@ -255,6 +258,7 @@ Possible readings, each at **a single level** of the other filter:
 
 - **effect of the EMA on the package** (col. 2 minus col. 1), measured with the VWAP absent: -0.04604 (`tight`) and -0.05262 (`loose`). Negative interaction, so the EMA and the package are **substitutes**
 - **effect of the VWAP on the package** (col. 3 minus col. 2), measured with the EMA present: -0.00044 and +0.00047. Zero interaction, so **additive**
+- **effect of the EMA on the VWAP**, with the exit package in place: the VWAP is worth +0.00804 without the EMA ($S3'-S3$) and +0.03339 with it ($S4'-S4$) under `tight`, +0.00650 and +0.02850 under `loose`; interaction +0.02536 and +0.02200. Positive, so the two entry filters are **complements**. S4′ beats S3′ by +0.04526 and +0.03000
 
 ### T11. Crossover between the two **exit thresholds** (axis 3)
 
@@ -283,7 +287,7 @@ Negative crossover = `loose` already wins at 0 bps and the gap widens. On S3 and
 | loose | return | yes | S2 > S4 > S3 > S0 > S1 |
 | loose | Sharpe | yes | S2 > S4 > S3 > S0 > S1 |
 
-The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The hypothesis "turnover, not the number of trades, predicts the drag" cannot be tested on these data: by the identity of T7 the two are proportional, so there is no variance to explain.
+The single inversion (S1 vs. S0 on Sharpe, `tight`, between 0 and 0.25 bps) is discussed below. The hypothesis "turnover, not the number of trades, predicts the drag" cannot be tested on these data: by the relation of T7 the two are almost proportional, so there is almost no variance to explain.
 
 ### Day-of-the-week on S4: mean session return by weekday
 
@@ -311,4 +315,4 @@ Sessions with at least one trade, 1,197 in total; one-sample $t$-test of the mea
 | S2 loose | 259.7 | 214.2 | 174.6 | 2.372 | 9.6% | 0.999 |
 | S4 tight | 259.2 | 208.2 | 164.4 | 2.088 | 8.4% | 1.036 |
 
-The 0.25 and 0.5 bps columns of S2′ and S4′ are **predicted** by the model of T6, not measured: for these two cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
+The 0.25 and 0.5 bps columns of S4′ are **predicted** by the model of T6, not measured: for the constructed cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.

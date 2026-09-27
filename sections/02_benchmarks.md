@@ -3,30 +3,35 @@
 A return of 271% over eight years means nothing until one says what it is measured against. The
 paper does adopt a point of comparison, SPY bought and held at 166.4%, but without leverage, while
 the strategy runs at an average leverage of 1.81: the comparison is between a leveraged portfolio
-and one that is not. The Sharpe ratio attached to that benchmark, 0.47, also does not follow from
-the numbers reported with it: 166.4% over eight years is 13.0% per year, which with the 16%
-volatility stated on the same line gives 0.69. The quoted value appears to be the long-run
-historical figure for equities rather than the one for this window, so the "nearly double" that
-the paper states for the Sharpe of S0 corresponds to a factor of about 1.2 rather than 1.8. This
-section builds two benchmarks in its place, each designed to isolate one thing, before going into
-the construction itself. They are what determines which questions are worth asking afterwards.
+and one that is not. The Sharpe ratio attached to that benchmark, 0.47, is on the same footing as
+the strategy's: under LEAN's convention (Appendix A, §A.8), reading the 16% volatility stated on
+the same line as the platform's annualized figure, 166.4% over eight years gives exactly 0.47 at
+the platform's risk-free rate of about 2.7%. The "nearly double" that the paper states for S0,
+0.835 against 0.47, is therefore a like-for-like comparison. The textbook formula,
+$(\text{CAR}-r_f)/\sigma$ at the report's $r_f = 2\%$, would give 0.69 for the benchmark, but also
+about 1.4 for S0: applied consistently, either convention returns a ratio between 1.8 and 2.0.
+What the comparison does not match is leverage. This section builds two benchmarks in its place,
+each designed to isolate one thing, before going into the construction itself. They are what
+determines which questions are worth asking afterwards.
 
 Both benchmarks share the strategy's leverage rule, $\Lambda = \min(2,\ 0.02/\sigma_{14g})$, and
 differ only in what they are meant to isolate. Leverage is matched because it is a free parameter
 that anyone can raise: comparing a portfolio at leverage 1.81 with one at leverage 1 measures the
 signal and the decision to take more risk together, and does not separate the two. And the whole
 rule is matched, not just the average multiplier, because the rule has effects of its own on
-compounded return. Further below we measure that volatility targeting costs 9% less than a fixed
-leverage of the same mean, and that advantage belongs to the null hypothesis, not to the signal.
+compounded return. Volatility targeting cuts leverage on the most volatile days, where leverage
+costs most, so it should pay less drag than a fixed leverage of the same mean; whatever that
+advantage is worth, it belongs to the null hypothesis, not to the signal.
 
 One thing about that rule changes how it needs to be understood. On this window and with the repository's
 parameters, $\Lambda$ is **at the cap of 2 on 66.1% of days**, with an average of 1.8056: for two
 thirds of the time there is no targeting at all, only fixed leverage at the maximum allowed. The
 figure comes from the instrumented benchmark, which replicates the rule without a signal, but it
-does not depend on the benchmark: the average weight per fill of the fourteen strategy
+does not depend on the benchmark: the average weight per fill of the sixteen strategy
 configurations, $\bar w \in [1.805;\ 1.828]$ in §3.7, is the same average leverage read off their
-own orders. The cap is not incidental: the paper's own §2.3 mentions the insufficient buying power
-errors that motivated it.
+own orders. The cap is not incidental: the paper sets it at 2× for consistency with Zarattini et
+al. and notes (§2.3) that without it, leverage in quiet periods exceeded the available margin and
+triggered insufficient buying power errors.
 
 The first benchmark, `intraday`, is long SPY from 9:31 to 15:58 and closes every evening, with no
 signal at all: it is the strategy stripped of nothing but its entry and exit logic. The second,
@@ -82,8 +87,9 @@ average win and average loss swapped digit for digit (0.99% / $-0.83\%$ vs. 0.83
 $-0.99\%$), so the two rows measure the same exposure in the two directions.
 
 **Blind exposure loses in both directions**, and the gap between the two is 5.3 points over eight
-years. That, and only that, is the drift term of the window; the rest, more than thirty points and
-common to both, is variance drag and commissions, which depend on $\Lambda^2$ and on the number of
+years. That gap, and only that, comes from the drift of the window, which enters the two runs with
+opposite signs, so the drift itself is worth about half of it; the rest, more than thirty points and
+common to both, is variance drag, commissions and the bid-ask spread, which depend on $\Lambda^2$ and on the number of
 fills and do not distinguish the sign of the position. The asymmetry exists and favors the short
 side, not the long side as one would have expected, but it is an order of magnitude too small to
 make either direction a sensible choice. There is no right side to be on without a signal: it is
@@ -114,16 +120,22 @@ and emitted via `set_runtime_statistic`, the only channel on the Free plan that 
 the log quota. The number of samples comes back as 2,012, exactly the independent count of NYSE
 sessions in the window, a free check that the sampling is one point per session with no gaps.
 
-**Commissions: 9,746.60 dollars** on an account that starts at 100,000 and closes at 81,691, with
+**Commissions: 9,746.59 dollars** on an account that starts at 100,000 and closes at 81,691, with
 3,997 orders over eight years. The right denominator is not the initial capital. The Interactive
-Brokers fee model is per share, and the shares in a trade are worth $\Lambda E/P$: the commission
-per trade is $c\,\Lambda E/P$, and relative to equity it is $c\,\Lambda/P$, a quantity that does
-not depend on the size of the account. Total commissions are then proportional to the **integral
-of equity over time**, not to the starting capital, and dividing by 100,000 would overstate the
-rate, because the account shrank over the whole window. With an average equity of 87,027 over the
-2,012 sessions the integral is $\int_0^8 E_t\,dt = 696{,}215$, and the result is
+Brokers fee model is per share, and a trade buys $\Lambda E/P$ shares: the commission is
+$c\,\Lambda E/P$, and relative to equity it is $f = c\,\Lambda/P$, a quantity that does not depend
+on the size of the account. Summed over the sessions, the dollars paid are
+$\sum_t f_t E_t \approx f \sum_t E_t$: they are proportional to the **integral of equity over
+time**, not to the starting capital, and the annual rate is total commissions divided by that
+integral. Dividing by 100,000 instead would understate it, because the account shrank over the whole
+window. The run records the equity at every session close, 2,012 values with an average of 87,027,
+so the integral is a sum with one step per session,
+$\int_0^8 E_t\,dt \approx 8\,\bar E = 696{,}215$, and
 
-$$\phi = \frac{\text{commissions}}{\text{years}\cdot\bar E} = \frac{9{,}746.59}{8 \cdot 87{,}027} = 1.400\%\ \text{per year}$$
+$$\phi = \frac{\text{commissions}}{\text{years}\cdot\bar E} = \frac{9{,}746.59}{8 \cdot 87{,}027} = 1.400\%\text{ per year}$$
+
+The step $f_t \approx f$ treats the rate as constant; strictly, the ratio gives its average weighted
+by equity.
 
 **Leverage drag.** Holding $\Lambda$ times the exposure does not multiply the compounded return by
 $\Lambda$. Over a single session the log return of the leveraged position is
@@ -137,6 +149,11 @@ $$\tfrac12\,\Lambda_t(\Lambda_t-1)\,r_t^2 \;=\; \tfrac12\,\frac{\Lambda_t-1}{\La
 and this is the form accumulated session by session inside the run. The sum built this way never
 passes through `ann_std`, so it does not inherit LEAN's annualization convention (Appendix A,
 §A.8). Divided by the number of years, it is 0.969% per year.
+The accumulator adds the term only on sessions with $\Lambda_t > 1$: the guard is there to skip
+sessions without a position, where $\Lambda_t = 0$, but it also drops the few with
+$0 < \Lambda_t < 1$, when the trailing volatility exceeds 2% a day. On those the term is negative,
+since a leverage below one recovers part of the variance instead of paying it, so the 0.969%
+slightly overstates the drag.
 
 **The arithmetic.** The two drags are logarithmic and add to each other, so they must be compared
 with the log CAR, $-\ln(1+R)/8 = 2.528\%$, and not with the simple CAR; mixing the two scales is
@@ -146,42 +163,40 @@ $$1.400\% + 0.969\% = 2.369\% \qquad \text{vs.} \qquad 2.528\%$$
 
 [Table T4]
 
-The two mechanical effects therefore explain 94% of the loss, and the residual is $-0.159\%$ per
-year on the leveraged position, that is, $-0.088\%$ per year on the underlying.
+The two mechanical effects therefore explain 94% of the loss. What remains, $-0.159\%$ per year, is
+the compounded return of the position itself once commissions and the extra cost of leverage are
+removed; divided by the average leverage it is about $-0.09\%$ per year for an unleveraged position.
+The division is only approximate, because leverage changes from day to day and is not independent of
+the returns it multiplies, so the figure is an order of magnitude and nothing below rests on its
+second digit.
 
-> The second figure divides the first by $\bar\Lambda$, which treats leverage as a constant. It
-> is not one: $\Lambda_t$ is set from the trailing volatility of the same series whose returns it
-> multiplies, so the exact conversion carries a covariance term that the division drops,
-> $E[\Lambda_t x_t]/\bar\Lambda = E[x_t] + \operatorname{Cov}(\Lambda_t, x_t)/\bar\Lambda$. That
-> the two are not independent is measured two paragraphs below, on the second moment: cutting
-> $\Lambda_t$ exactly when $r_t^2$ is large is what makes the drag 9% lower than at a constant
-> leverage of the same mean. The $-0.088\%$ is therefore the order of magnitude of the unleveraged
-> residual, not an identity, and nothing in the section rests on its second digit.
+In words: in this window, anyone long SPY from 9:31 to 15:58 every day, without leverage and
+commissions but paying the bid-ask spread, would have ended roughly flat after eight years. Trading
+hours, on their own, earned about nothing: the 13.0% a year that SPY delivered (166.4%, paper, §3.2)
+accrued almost entirely overnight, the segment this benchmark does not hold, in line with a
+well-documented pattern in US equities (Cooper, Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+This is why the benchmark loses: with nothing to earn during the session, what it pays in
+commissions and leverage drag is a net loss, and whatever the strategy earns over it has to come
+from its signal.
 
-That residual is the **compounded** return of a passive, unleveraged intraday position: it says
-that anyone long from 9:31 to 15:58 for eight years, without leverage and without costs, would
-have ended flat to within a tenth of a point per year. It does not say that the arithmetic daily
-mean is zero; that mean is positive, and it is consumed by its own variance drag until the
-compounded return reaches zero. The distinction matters because the session is not homogeneous:
-"SPY does not drift intraday" does not hold segment by segment; "a passive position over the
-whole session ends flat" is what was measured. The return SPY actually delivered
-over the window, 166.4% (paper, §3.2), that is, 13.0% per year, therefore lives almost entirely
-overnight, the segment this comparison does not measure; that the equity premium of US stocks
-accrues overnight rather than during trading hours is documented well beyond this window (Cooper,
-Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+"Flat" refers to the compounded return: the arithmetic mean of the daily returns is positive, but
+compounding subtracts about half their variance.
 
-One last observation on the drag, which is a fact about the sizing rule and not about the
-benchmark. At constant leverage, with $\bar\Lambda = 1.8056$, the formula would give 1.07% per
-year; measured, it gives 0.969%, 9% less. The difference is the leverage rule at work: $\Lambda_t$
-is cut precisely on the days when $r_t^2$ is large, and the drag weights the squares. **Volatility
-targeting costs less than a fixed leverage of the same mean**, and the margin is measurable.
+> Averaging $\ln(1+r) \approx r - \tfrac12 r^2$ gives
+> $E[\ln(1+r)] \approx E[r] - \tfrac12 E[r^2] = E[r] - \tfrac12(\sigma^2 + E[r]^2) \approx E[r] - \tfrac12\sigma^2$,
+> since $E[r]^2$ is several orders of magnitude smaller than $\sigma^2$ for daily returns.
 
 From this follows the property that makes the strategy interesting. A strategy that goes flat
-every evening does not touch the equity premium by construction, and indeed it has
-$\beta = -0.053$. It does not participate in the market: it extracts return from a window whose
-compounded return is zero. The zero beta is not the result of an optimization; it is a consequence
-of the schedule. The schedule has five exceptions in eight years, all on half-day sessions where
-the 15:58 liquidation branch is never reached (§7, item 3); §8 bounds what they are worth.
+every evening does not touch the equity premium by construction: it extracts return from a window
+whose compounded return is zero. Its beta of $-0.053$ has a different origin, and the benchmark
+shows which: the same schedule held long, with no signal, has $\beta = 0.800$. Being flat overnight
+removes the equity premium, not the exposure to the day's move. What removes that is the signal,
+which is long on upward breakouts and short on downward ones and splits its P&L evenly between the
+two sides (50.0% and 50.0% on S4, above), so that its daily return depends on the size of the
+intraday move more than on its sign. The zero beta is not the result of an optimization; it is a
+consequence of the symmetry of the signal. The schedule, for its part, has five exceptions in
+eight years, all on half-day sessions where the 15:58 liquidation branch is never reached (§7,
+item 3); §8 bounds what they are worth.
 
 ## The opportunity cost
 
@@ -191,10 +206,18 @@ immune to costs: its break-even is at 218 bps of slippage vs. the strategy's 2.2
 magnitude smaller. Under any cost assumption the gap widens rather than closes.
 
 One correction, however, works in the opposite direction. LEAN does not charge interest on the
-borrowed balance, and with $\Lambda_{avg} = 1.8056$ `hold24` stays borrowed for 0.8056 units of
-equity every night for eight years. The correction is subtractive on the CAR, because interest
-accrues on the balance at the start of the period and not on the realized return:
-$E_{t+1} = E_t\,(1 + g - (\Lambda-1)r)$.
+borrowed balance, and with an average leverage $\bar\Lambda = 1.8056$ `hold24` borrows 0.8056 units
+of equity every night for eight years. A broker would charge interest on that balance, and the
+interest depends on how much is borrowed, not on how the market moves. Write $E_t$ for the equity at
+the start of year $t$, $g = 20.702\%$ for the annual return of `hold24` as backtested (its CAR,
+before any financing cost) and $r$ for the annual financing rate. The borrowed balance is
+$(\bar\Lambda-1)E_t$, the interest paid in the year is $(\bar\Lambda-1)\,r\,E_t$, and
+
+$$E_{t+1} = E_t\,\big(1 + g - (\bar\Lambda-1)\,r\big), \qquad E_8 = E_0\,\big(1 + g - (\bar\Lambda-1)\,r\big)^8.$$
+
+The cost is therefore subtracted from the annual growth rate, not applied as a fraction of the
+return. Using the average leverage and a constant rate are both simplifications; T5 applies the
+correction for rates from 2% to 5%.
 
 [Table T5]
 

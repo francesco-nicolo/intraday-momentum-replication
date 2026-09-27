@@ -11,14 +11,22 @@ points, appears on all five strategies (T1). The paper transcribes its own outpu
 this is the only platform statistic that does not come back after a lapse of time on the same
 code, since orders, Sharpe, drawdown, win rate and turnover all agree to within rounding.
 
-What changed is the platform, not the original work.
-Two things follow, and they point in opposite directions. Today's value is well defined and can be
-checked: Appendix A, §A.8 reproduces it from the moments of the same run, to within half a point,
-once LEAN's own definition is used, in which the PSR is measured against a benchmark Sharpe of 1
-rather than against zero. But a statistic that moves by forty points on unchanged code
-and unchanged data cannot be cited as evidence for or against anything, which is why Appendix A
-computes the Deflated Sharpe Ratio from the raw moments of the returns rather than from it. What
-the difference between the two eras is remains unexplained here.
+What changed is the platform, not the original work, and the change can be identified. LEAN's
+own routine, `Statistics.ProbabilisticSharpeRatio`, with the benchmark Sharpe of 1 that Appendix A,
+§A.8 documents, reproduces both columns once a single detail is allowed to differ between the two
+dates: the risk-free rate inside the Sharpe ratio that the PSR tests. Without it, the routine
+returns the authors' values (61.7% against 61.6% on S0, 83.2% against 83.4% on S4); with the
+platform's rate of about 2.7% subtracted, it returns today's (21.5% against 21.5%, 44.4% against
+44.3%), to within 0.3 points on all ten figures. The printed Sharpe ratio subtracts the rate on
+both dates, which is why it reproduces. The check starts from each run's printed Sharpe and annual
+standard deviation and uses, for all five strategies, the skewness and kurtosis measured on S4′
+tight, since they are not reported per strategy; the table is in the supplementary file.
+
+The two dates therefore report two different statistics under the same name: in March the PSR
+tested the Sharpe ratio before the risk-free rate, today after it. Each is well defined, but they
+cannot be compared with each other, and neither is the probability that the true Sharpe ratio is
+positive, since both test against a Sharpe of 1. This is why Appendix A computes the Deflated
+Sharpe Ratio from the raw moments of the returns rather than from the platform's figure.
 
 **Provenance of the two sides of this comparison.** An argument that a platform has moved is only
 worth as much as the two runs behind it can be dated, so both are recorded here. On the authors'
@@ -35,7 +43,7 @@ is the engine. The projects are configured to follow QuantConnect's master branc
 ran on whichever build was deployed that day: the S0 runs of 26 August report LEAN engine
 v2.5.0.0.18034 in their log header, and master stood at v18057 on 4 September, twenty-three builds
 later in nine days. Five months of that cadence separate the two columns of the table above. This
-dates the gap; it does not explain it.
+dates the gap; which build changed the definition is not identified here.
 
 **2. S2 requires three entry conditions, not two.** Equations (7) and (8) of the paper describe a
 "dual confirmation" entry, $P_t > UB_t$ **and** $P_t > EMA_{100}(t)$. In `strategy2.py` the entry

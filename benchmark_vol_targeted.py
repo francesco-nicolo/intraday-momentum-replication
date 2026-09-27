@@ -22,7 +22,7 @@ import numpy as np
 #
 # NOTES:
 #  - LEAN does not charge margin interest. With Lambda > 1 the return is overstated by about
-#    (Lambda - 1) * r per year. It has to be subtracted by hand (§2, T3).
+#    (Lambda - 1) * r per year. It has to be subtracted by hand (§2, T5).
 #  - The security leverage is raised to 4 only to prevent forced margin calls (which would
 #    liquidate the position and corrupt the series). The margin_calls counter checks that
 #    none fire anyway.
@@ -99,6 +99,9 @@ class VolTargetedBenchmark(QCAlgorithm):
                 self.eq_n += 1
                 if self.prev_equity is not None and self.prev_equity > 0:
                     r = v / self.prev_equity - 1.0
+                    # The guard is meant to skip sessions without a position (Lambda = 0); with
+                    # > 1.0 instead of > 0 it also drops the few sessions with 0 < Lambda < 1,
+                    # where the term is negative, so drag_sum slightly overstates the drag (§2).
                     if self.lam_today > 1.0:
                         self.drag_sum += (self.lam_today - 1.0) / self.lam_today * r * r
                 self.prev_equity = v

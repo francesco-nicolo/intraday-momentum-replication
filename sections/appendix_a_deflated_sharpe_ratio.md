@@ -10,18 +10,18 @@ One result of this report is that the best configuration among those examined, S
 with the VWAP entry filter added, reaches a Sharpe of 1.075 vs. 1.036 for S4 and 0.835 for the S0
 baseline.
 
-This result was obtained **by selecting the maximum over fourteen configurations**. Selection
+This result was obtained **by selecting the maximum over sixteen configurations**. Selection
 introduces a bias that has nothing to do with the quality of the strategy: the maximum of $N$
 noisy estimates is systematically above the mean of the population they come from, even when that
 population has a mean of exactly zero.
 
-The most direct analogy: fourteen perfectly fair coins, a hundred tosses each, and one keeps the
+The most direct analogy: sixteen perfectly fair coins, a hundred tosses each, and one keeps the
 coin with the most heads. That coin will show a frequency of heads above 50%. Not because it is
-biased, but because it is the maximum of fourteen draws.
+biased, but because it is the maximum of sixteen draws.
 
 The right question is therefore not *"is 1.075 a high Sharpe?"* but:
 
-> **How high would the best of the fourteen have been if none of the fourteen had any edge?**
+> **How high would the best of the sixteen have been if none of the sixteen had any edge?**
 
 This appendix computes that threshold and compares the observed result against it.
 
@@ -46,12 +46,13 @@ $\Phi$, so the number it returns is at once the complement of a one-sided p-valu
 $\widehat{SR}$ as a pivotal statistic for a location parameter, the confidence that $SR$ exceeds
 $SR^*$. The two readings agree for as long as $SR^*$ is a constant fixed in advance, which is the
 case for the PSR. They stop agreeing once the threshold is itself estimated from the same data,
-which is the case for the deflated version used here; §A.10 states the consequence. The figure of
+which in the deflated version used here happens only through a plug-in worth a hundredth of a
+point (§A.10). The figure of
 §A.6.2 is therefore reported as a test statistic with a nominal level, not as a probability
 attached to the parameter.
 
 The limitation is that the PSR looks at **one** strategy at a time and does not know how many were
-tried. Applying it to all fourteen and reporting the best means reporting the maximum of fourteen
+tried. Applying it to all sixteen and reporting the best means reporting the maximum of sixteen
 PSRs, that is, falling back into the original problem.
 
 The **Deflated Sharpe Ratio** (Bailey and López de Prado, 2014) is the same formula with the
@@ -64,8 +65,8 @@ $$\boxed{\;\text{DSR} = \text{PSR}(SR_0)\;}$$
 ### A.2.1 A second reason, independent of the first: the platform PSR does not reproduce
 
 There is a second reason, distinct from multiple selection, not to build the DSR on the PSR that
-QuantConnect reports in its interface: that number has not remained stable over time on the same
-code.
+QuantConnect reports in its interface: that number has not remained the same over time on the same
+code, because its definition has changed.
 
 The repository preserves `stats/strat{0..4}_8y.json`, the authors' backtest output. Re-running
 the same code without modifications, over the same period, five months later — their runs are of
@@ -86,13 +87,14 @@ deviation and Portfolio Turnover all agree. The strategy sources are unchanged s
 `b960d36` and the order counts match exactly on all five rows, so the inputs to the computation are
 the same on the two dates up to the fill-price differences documented in §1, which move the returns
 by at most 0.29pp and cannot account for forty points of PSR. What is not fixed between the two
-dates is the engine build, since the projects follow QuantConnect's master branch. The reading this
-supports is that the figure moved on the platform's side rather than in the code; which build, and
-what in it, is not recoverable from the result files, and §7 dates the gap without explaining it.
+dates is the engine build, since the projects follow QuantConnect's master branch, and §7
+identifies what changed in it: LEAN's routine reproduces the March values with no risk-free rate
+inside the tested Sharpe ratio and today's with the rate subtracted, to within 0.3 points on all
+ten figures. The build in which the change entered is not recoverable from the result files.
 
 This is the practical reason, in addition to the statistical one of §A.2, why the DSR of this
 appendix does not start from the PSR reported in the interface of any backtest, neither of our
-own fourteen nor of the March runs preserved in the repository. It starts from the five scalar
+own sixteen nor of the March runs preserved in the repository. It starts from the five scalar
 accumulators of §A.5, computed locally from the daily returns of the same run: a quantity that does
 not depend on which version of QuantConnect's pipeline produced it. The full detail of this
 comparison is in §7 (T1).
@@ -110,64 +112,69 @@ $$SR_0 = \sigma\left[(1-\gamma)\,\Phi^{-1}\!\left(1 - \frac{1}{N}\right) + \gamm
 
 with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The two terms are the quantiles
 corresponding to the mode and the mean of the limiting Gumbel, combined with weight $\gamma$. For
-$N = 14$ the quantity in brackets is 1.7384.
+$N = 16$ the quantity in brackets is 1.8005.
 
-The relevant property is that $\Phi^{-1}$ grows **logarithmically** in $N$: the threshold rises
-very slowly as the number of trials increases.
+The relevant property is that $\Phi^{-1}(1-1/N)$ grows like $\sqrt{2\ln N}$, more slowly even than
+a logarithm: the threshold rises very slowly as the number of trials increases.
 
 ---
 
 ## A.4 Parameters: choice and justification
 
-### A.4.1 Number of trials, $N = 14$
+### A.4.1 Number of trials, $N = 16$
 
-The fourteen configurations for which a 0 bps backtest exists: S0, S1, S2, S3, S4, S2′, S4′, each
+The sixteen configurations for which a 0 bps backtest exists: S0, S1, S2, S3, S4, S2′, S3′, S4′, each
 in the two exit variants `tight` and `loose`.
 
-Twelve of these belong to the initial design. The two prime cells (S2′, S4′) were **constructed
-along the way**, after observing the results of S2 and S4, to separate two axes that were
-confounded in the original comparison, entry filter and exit structure. This is data-driven
-research, not a design fixed in advance, and it is declared as such: the motivation was one of
-experimental design, not of expected result, but the cells were added after looking at the
-numbers.
+Ten of these belong to the initial design. The three prime cells (S2′, S3′, S4′) were
+**constructed along the way**: S2′ and S4′ after observing the results of S2 and S4, to separate
+two axes that were confounded in the original comparison, entry filter and exit structure; S3′
+after observing the interactions of §4.4, to run the one combination of the two entry filters
+missing under the exit package. This is data-driven research, not a design fixed in advance, and
+it is declared as such: the motivation was one of experimental design, not of expected result,
+but the cells were added after looking at the numbers.
 
-No configuration was explored and discarded: the fourteen are the entire search space and all are
+No configuration was explored and discarded: the sixteen are the entire search space and all are
 reported. The variants at $b > 0$ do not count as separate trials, because they are not
 independent searches but deterministic transformations of the 0 bps rows through the cost
 reconstruction.
 
-$N = 14$ is also **conservative** with respect to the independence assumption: the trials share
+$N = 16$ is also **conservative** with respect to the independence assumption: the trials share
 instrument, window, leverage rule and most of the logic, so the number of effectively independent
-trials is below 14, which would lower $SR_0$.
+trials is below 16, which would lower $SR_0$.
 
 ### A.4.2 Null dispersion, $\sigma$: two specifications
 
 **Main specification (conservative).** Under $H_0$ the relevant dispersion is the standard error
-of the sample Sharpe of one independent trial:
+of the sample Sharpe of one independent trial whose true Sharpe is zero, $1/\sqrt{n} = 0.02230$.
+The main specification plugs the observed Sharpe into the general expression instead,
 
 $$\text{SE}(\widehat{SR}_d) \approx \sqrt{\frac{1 + \widehat{SR}_d^{\,2}/2}{n}} = 0.02234$$
 
-already in daily units. This is the specification on which the conclusions rest.
+which is 0.2% larger and therefore raises the threshold slightly. Both are already in daily units;
+the conclusions rest on the second, and §A.6.2 reports the first alongside it.
 
 **Bailey and López de Prado specification.** The authors prescribe the **cross-sectional**
-standard deviation of the $N$ sample Sharpes; over the fourteen values at 0 bps it is
-$\sigma_{\text{cross}} = 0.06917$ in QC Sharpe units.
+standard deviation of the $N$ sample Sharpes; over the sixteen values at 0 bps it is
+$\sigma_{\text{cross}} = 0.06795$ in QC Sharpe units.
 
-Here this specification is **not informative**, for a reason that matters: the fourteen
+Here this specification is **not informative**, for a reason that matters: the sixteen
 trials are minor variants of one another, so they produce nearly identical Sharpes.
 $\sigma_{\text{cross}}$ measures the variability *between variants*, not the sampling variability
 that an independent trial would have under the null hypothesis, and it is in fact smaller than the
-theoretical standard error by a **factor of 4.25**: $0.06917$ vs.
+theoretical standard error by a **factor of 4.33**: $0.06795$ vs.
 $0.02234 \times 13.173 = 0.29430$, both in QC units. The resulting figure is so high as to be
 insensitive to any $N$, which is in itself the symptom that the threshold is too low. It is
 reported in §A.7 for completeness, not as a result.
 
-Two details, both in the conservative direction and therefore worth stating:
+Two details on the threshold:
 
-- The SE used is the Gaussian one. The version corrected for the actual moments is
-  $\sqrt{(1 - \hat\gamma_3\widehat{SR}_d + \frac{\hat\gamma_4-1}{4}\widehat{SR}_d^{\,2})/n} = 0.02055$,
-  that is, smaller. Using 0.02234 raises the threshold.
-- $\sigma_{\text{cross}}$ is computed over the fourteen Sharpes **including the maximum**, which
+- Under $H_0$ the higher moments do not enter the SE. The non-normal expression,
+  $\sqrt{(1 - \hat\gamma_3 SR + \frac{\hat\gamma_4-1}{4} SR^{2})/n}$, reduces to $1/\sqrt{n}$ when
+  the true Sharpe is zero, so the skewness and kurtosis of §A.6.1 act on the denominator of the
+  test, not on the threshold. Evaluated at $\widehat{SR}_d$ it would give 0.02055 and a lower
+  threshold, but that is not a null quantity and it is not used.
+- $\sigma_{\text{cross}}$ is computed over the sixteen Sharpes **including the maximum**, which
   slightly inflates the dispersion and therefore the threshold.
 
 ### A.4.3 Risk-free rate, $r_f = 2\%$
@@ -175,8 +182,8 @@ Two details, both in the conservative direction and therefore worth stating:
 A convention already declared elsewhere in the report, applied as $r_f/252$ per trading day. It is
 not calibrated on anything: it is fixed a priori, and it is ours, not the platform's, whose own
 rate over this window is about 2.7% (§A.8). Its effect on the result is bounded either way: the rate
-enters only through the excess return in $\widehat{SR}_d$, and the DSR of §A.6.2 is 99.6% at
-$r_f = 1\%$, 99.0% at 2%, 98.4% at about 2.7%, and 98.0% at 3%.
+enters only through the excess return in $\widehat{SR}_d$, and the DSR of §A.6.2 is 99.5% at
+$r_f = 1\%$, 98.8% at 2%, 98.1% at about 2.7%, and 97.6% at 3%.
 
 Not to be confused with the margin financing rate discussed elsewhere (3.5%): that is the cost of
 borrowed capital, this is the term subtracted in the numerator of the Sharpe ratio. They are two
@@ -208,15 +215,16 @@ as well, because the SE goes as $1/\sqrt{n}$.
 
 | | $\widehat{SR}$ | $n$ | denominator | $z$ | DSR |
 |---|---|---|---|---|---|
-| trading days | 0.08694 | 2011 | 0.92150 | 2.3402 | **99.04%** |
-| calendar days | 0.07214 | 2922 | 0.92182 | 2.3401 | **99.04%** |
+| trading days | 0.08694 | 2011 | 0.92150 | 2.2728 | **98.85%** |
+| calendar days | 0.07214 | 2922 | 0.92182 | 2.2727 | **98.85%** |
 
 There is therefore no knob to turn: the conclusion is the same whichever convention is adopted.
 The invariance holds to the precision reported rather than exactly. Besides the constant $-1$
 above, the dilution of the moments is itself an approximation, because the $m^2$ term in
 $m_2 = \sum_i r_i^2/n - m^2$ scales with $\kappa^2$ and not with $\kappa$, and the same applies to
 the centring terms of the third and fourth moments. Redoing the whole calculation on the calendar
-series from the raw power sums, with none of these approximations, gives 99.0% again.
+series from the raw power sums, with none of these approximations, gives the same figure to
+within a hundredth of a point.
 
 **Corollary.** What makes the DSR of this appendix invariant is that its threshold $SR_0$ is built
 from the standard error and therefore rescales with the sampling, together with everything else.
@@ -301,23 +309,24 @@ $\widehat{SR}_d = (m - r_f/252)/s = 0.08694$.
 
 ### A.6.2 Main result
 
-With $\text{SE} = 0.02234$ and $N = 14$:
+With $\text{SE} = 0.02234$ and $N = 16$:
 
-$$SR_{0,d} = 0.02234 \times 1.7384 = 0.03884$$
+$$SR_{0,d} = 0.02234 \times 1.8005 = 0.04022$$
 
-$$z = \frac{(0.08694 - 0.03884)\sqrt{2010}}{\sqrt{1 - 2.011 \cdot 0.08694 + \frac{13.703 - 1}{4}\cdot 0.08694^2}} = \frac{2.1570}{0.9215} = 2.341$$
+$$z = \frac{(0.08694 - 0.04022)\sqrt{2010}}{\sqrt{1 - 2.011 \cdot 0.08694 + \frac{13.703 - 1}{4}\cdot 0.08694^2}} = \frac{2.0946}{0.9215} = 2.273$$
 
-$$\boxed{\text{DSR} = \Phi(2.341) = \mathbf{99.04\%}}$$
+$$\boxed{\text{DSR} = \Phi(2.273) = \mathbf{98.85\%}}$$
 
-With the SE corrected for the actual moments (0.02055) the value rises to **99.36%**.
+With the exact null value of the SE, $1/\sqrt{n} = 0.02230$, the threshold is 0.04015 and the
+DSR 98.86%: the plug-in costs a hundredth of a point.
 
 **How the figure should be stated.** It is a confidence level in the sense of §A.2, equivalently
 the complement of a one-sided p-value, and not a posterior probability, so the defensible wording
-is: *under the null hypothesis that all fourteen
+is: *under the null hypothesis that all sixteen
 configurations have a true Sharpe of zero, the observed maximum is incompatible with selection
-noise at the 1% level* ($z = 2.34$, $p = 0.0096$, one-sided). This says the same thing as
-"DSR = 99.04%" and claims nothing the construction does not support. The level is nominal rather
-than exact, for the reason given in §A.10.
+noise at the 5% level* ($z = 2.27$, $p = 0.012$, one-sided). This says the same thing as
+"DSR = 98.85%" and claims nothing the construction does not support. The level is nominal rather
+than exact, for the reasons given in §A.10.
 
 ### A.6.3 Consistency check of the instrumentation
 
@@ -379,7 +388,7 @@ open.
 
 | $N$ | Gumbel bracket | $SR_{0,d}$ | DSR |
 |---|---|---|---|
-| 14 | 1.7384 | 0.03884 | **99.04%** |
+| 16 | 1.8005 | 0.04022 | **98.85%** |
 | 50 | 2.2763 | 0.05086 | 96.04% |
 | **65** | 2.3751 | 0.05306 | **95.03%** |
 | 100 | 2.5306 | 0.05654 | 93.04% |
@@ -387,15 +396,15 @@ open.
 | 1,000 | 3.2551 | 0.07272 | 75.54% |
 
 The exact 95% threshold falls at $N = 65.5$. The conclusion therefore stays above 95% up to
-**$N \approx 65$ trials**, vs. the actual 14: a margin of about a factor of five on the number
-of configurations it would have been legitimate to explore. With the SE corrected for the moments
-the threshold moves to $N \approx 117$.
+**$N \approx 65$ trials**, vs. the actual 16: a margin of about a factor of four on the number
+of configurations it would have been legitimate to explore. With the exact null SE the threshold
+moves to $N \approx 66$.
 
 It is a solid margin but not an unlimited one, and this is the correct formulation of the result.
 
 **For comparison, the Bailey and López de Prado specification.** Bringing
-$\sigma_{\text{cross}} = 0.06917$ into daily units, that is, dividing it by 13.173 (§A.4.5), the
-DSR is 99.99% at $N = 14$, 99.94% at $N = 10^4$ and 99.63% at $N = 10^9$: no number of trials
+$\sigma_{\text{cross}} = 0.06795$ into daily units, that is, dividing it by 13.173 (§A.4.5), the
+DSR is 99.99% at $N = 16$, 99.94% at $N = 10^4$ and 99.65% at $N = 10^9$: no number of trials
 brings the conclusion down. This total insensitivity is not robustness; it is the diagnostic
 symptom that the cross-sectional dispersion is too small to be a sensible null dispersion when
 the trials are as correlated as these. The number is reported for completeness, not offered as a
@@ -499,20 +508,20 @@ equal Sharpe, a distribution with positive skewness is preferable.
 ## A.10 Limitations
 
 **The DSR corrects for selection within the family, not for the choice of the family.** The
-fourteen configurations are minor variants of the same strategy, on the same instrument, over the
+sixteen configurations are minor variants of the same strategy, on the same instrument, over the
 same window. The test answers: *given this family, is the best distinguishable from the family's
 noise?* It does not answer: *does intraday momentum on SPY have edge?* That selection took place
 upstream, at the moment the family was published because it worked, and no correction applied
 downstream can recover it.
 
-**The threshold is estimated, not known.** In a Wald test the null value $\theta_0$ is a constant
-fixed in advance. Here $SR_0 = \hat\sigma \times 1.7384$ depends on $\hat\sigma$, which in turn
-depends, through the plug-in of §A.4.2, on the same $\widehat{SR}_d$ that stands in the numerator.
-Numerator and threshold are therefore correlated, and the variance of $\widehat{SR}_d - SR_0$ is not
-the $\text{SE}^2$ that the denominator uses: a covariance term is missing. The direction is not
-neutral, if $\hat\sigma$ is overstated the test is conservative and if understated
-anti-conservative, and the level is to be read as nominal. The PSR against zero does not have this
-problem, because there $SR^* = 0$ is a true constant; it is specific to the deflated version.
+**The threshold depends on the data only through a plug-in.** In a Wald test the null value
+$\theta_0$ is a constant fixed in advance. Under $H_0$ the standard error of a zero Sharpe is
+$1/\sqrt{n}$, a constant, and so would be the threshold $SR_0$. The main specification of §A.4.2
+plugs the observed $\widehat{SR}_d$ into the SE instead, which ties $SR_0$ to the same
+$\widehat{SR}_d$ that stands in the numerator, so that the variance of $\widehat{SR}_d - SR_0$ is
+not exactly the $\text{SE}^2$ the denominator uses. The tie is immaterial here: with the constant
+null value, 0.02230 instead of 0.02234, the DSR is 98.86% instead of 98.85%. The level remains
+nominal because of the approximations below, not because of the threshold.
 
 **Independence of observations.** The factor $\sqrt{n-1}$ assumes independent daily returns.
 Residual autocorrelation would reduce the effective sample size and therefore the DSR. It was not
@@ -535,14 +544,14 @@ question, and it remains open; see §8.
 
 ## A.11 Conclusions
 
-1. The Sharpe of 1.075 of S4′ tight **is not an artifact of the selection among fourteen
-   configurations**: DSR = 99.04% under the conservative specification, 99.36% correcting the SE
-   for the actual moments. The test is against the selection threshold $SR_0$, under the null
-   that all fourteen configurations have a true Sharpe of zero: it says that S4′ is not selection
+1. The Sharpe of 1.075 of S4′ tight **is not an artifact of the selection among sixteen
+   configurations**: DSR = 98.85% under the conservative specification, 98.86% with the exact null
+   standard error. The test is against the selection threshold $SR_0$, under the null
+   that all sixteen configurations have a true Sharpe of zero: it says that S4′ is not selection
    noise, not that it is better than S4, from which it differs by +0.033 in log return over eight
    years (§6).
 
-2. The result holds up to **about 65 trials** vs. the actual 14, a margin of a factor of five
+2. The result holds up to **about 65 trials** vs. the actual 16, a margin of a factor of four
    on the parameter a critique could focus on. The standard Bailey and López de Prado specification
    would give 99.99% and insensitivity to any $N$, but that insensitivity is an artifact of the
    correlation between the trials and should not be claimed.
@@ -563,5 +572,7 @@ question, and it remains open; see §8.
 6. The choice to compute the DSR from the raw moments (§A.5) rather than from the PSR in
    QuantConnect's interface turns out to be necessary, not merely prudent: that statistic,
    recomputed today on unchanged code, differs by 39 to 46 percentage points from the value
-   preserved in the result files, on all five published strategies (§A.2.1). A figure that moves on
-   a fixed input cannot serve as a basis, whichever of the two values is the right one.
+   preserved in the result files, on all five published strategies (§A.2.1), because the platform
+   has changed its definition in between (§7). A figure whose definition changes under the same
+   name cannot serve as a basis for comparison across dates, and neither version tests against a
+   Sharpe of zero.

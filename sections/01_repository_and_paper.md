@@ -44,18 +44,28 @@ backtest output, preserved in the repository.
 
 [Table T1]
 
-Orders, drawdown and win rate match exactly on all five rows; Sharpe matches to within a
-thousandth, turnover to within a hundredth of a point. Return matches to within 0.29 percentage
-points (pp) in the worst case (S1) and 0.06pp in the best (S4), always on the low side, and the
-gap has an identifiable cause: the commissions of the new runs are higher by between 0.24% and
-0.51% **at exactly the same order count**, so the difference lies in the fill prices, not in the
-strategy. The code in the repository does today what it did for the authors.
+Orders, drawdown and win rate match exactly on all five rows; Sharpe matches to within a thousandth,
+turnover to within a hundredth of a point. Return matches to within 0.29 percentage points (pp) in
+the worst case (S1) and 0.06pp in the best (S4), always on the low side. The gap has an identifiable
+cause: at exactly the same order count, the commissions of the new runs are higher by between 0.24%
+and 0.51%, so the difference lies in the fill prices, not in the strategy. The likely source is the
+dividend adjustment. LEAN fills on dividend-adjusted prices, and the adjustment is computed as of
+the day the backtest runs, so every dividend paid between two runs lowers the whole price history
+seen by the later one, by about a quarter of a percent for SPY. Lower prices buy more shares for the
+same notional, and the per-share commission, with the drag it puts on return, rises by the same
+fraction. SPY went ex-dividend twice between the authors' runs and these, on 20 March and
+18 June 2026. The runs of 18 and 20 March (S0 to S3), consistent with data that did not yet reflect the
+first of the two, differ from the reproduction by 0.47% to 0.51%, two dividends; S4, run on 23
+March, differs by 0.24%, one. This is inferred from the dates and the magnitudes, not verified
+against the platform's price files. The code in the repository does today what it did for the
+authors.
 
 **One exception, and only one**: the Probabilistic Sharpe Ratio does not reproduce on any of the
 five rows, with a gap of between 39.1 and 45.8 percentage points, 41.3 on average. This is not a
-code reproducibility problem: it is a platform statistic that has not remained stable over
-time. The discussion is
-in §7 and in Appendix A, where it becomes the reason for computing the Deflated Sharpe Ratio from
+code reproducibility problem: the platform has changed how it computes the statistic. LEAN's own
+routine returns the authors' values when the Sharpe ratio inside it is taken before the risk-free
+rate, and today's when the rate is subtracted, to within 0.3 points on all ten figures (§7). The
+discussion is in §7 and in Appendix A, where it becomes the reason for computing the Deflated Sharpe Ratio from
 the raw moments rather than citing it.
 
 Beyond that, the issue this report takes up is not the reproducibility of the numbers. It is what
@@ -92,5 +102,6 @@ $-53\%$, so in percentage points the residuals would not be comparable across ro
 
 **Costs.** The horizontal axis of every cost chart and cost table is the **additional** slippage:
 the 0 bps level is not a backtest without costs, it is a backtest that pays Interactive Brokers
-commissions in full and nothing else. The risk-free rate is set at $r_f = 2\%$ and the margin
+commissions in full and the quoted bid-ask spread, since LEAN fills buys at the ask and sells at the
+bid, and nothing else. The risk-free rate is set at $r_f = 2\%$ and the margin
 financing rate at 3.5%, both conventions declared in advance and discussed where they are used.

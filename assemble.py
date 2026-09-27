@@ -43,7 +43,7 @@ FIGURES = {
     "F1": ("figures/F1_out_of_sample_validation.png",
            "F1. Out-of-sample validation of the cost reconstruction"),
     "F2": ("figures/F2_factorial_design.png",
-           "F2. The four cells of the VWAP entry filter × exit structure plane, under the two exit thresholds"),
+           "F2. The four cells of the VWAP entry filter × exit structure plane, all with the EMA filter, under the two exit thresholds"),
     "F3": ("figures/F3_net_profit_vs_slippage.png",
            "F3. Decay under costs. The 0 bps baseline already includes IB commissions"),
 }
