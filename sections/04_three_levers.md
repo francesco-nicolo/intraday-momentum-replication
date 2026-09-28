@@ -179,15 +179,13 @@ other filter only (§8).
 
 A prediction of this analysis that the data did not bear out, reported as such.
 
-Under `tight` the exit threshold sits at or above the level that authorized the entry, so the
-condition should become true early in the life of most positions: the cadence would then stop
+Under `tight` the exit threshold typically sits at or above the level that authorized the entry (§4.3), so the condition should become true early in the life of most positions: the cadence would then stop
 measuring the readiness to react to a reversal and measure instead how long a position the
 threshold has already condemned is allowed to run, half an hour vs. five minutes. If the gap
 between S0 and S1 were entirely due to this, then under `loose`, where the threshold is genuinely
 distant and fires only on a real retracement, the gap should close.
 
-It does not close: it goes from 0.06508 to 0.04853, so **the zero-distance threshold explains 25% of
-it** and the rest is genuine. The 5-minute monitoring really is costly, and the paper's qualitative
+It does not close: it goes from 0.06508 to 0.04853, **a reduction of 25%**, which cannot be attributed to the distance alone (see below). The 5-minute monitoring really is costly, and the paper's qualitative
 conclusion survives the threshold, even against the alternative this analysis was testing.
 
 The paper does not stop at recording the phenomenon, however: it gives it a mechanism. "*VWAP is a
@@ -207,8 +205,7 @@ mechanism: the cost is smaller precisely where the VWAP is in charge.
 **It is not such evidence.** The two variants differ not only in *which* term binds but also in
 *how far* the threshold is from the entry level, and a more distant threshold is crossed less often
 whatever the quantity that defines it. The smaller cost under `loose` is what one would predict
-from the distance alone, without ever mentioning the VWAP: the two effects push in the same
-direction and cannot be separated with these cells. Add that under `tight` the VWAP is not absent
+from the distance alone, without ever mentioning the VWAP: distance and binding term change together between the two variants, and these cells cannot separate them. Add that under `tight` the VWAP is not absent
 (when, on a day of sustained rally, it rises above $UB$, it binds there too), and that the paper's
 mechanism concerns the *rate* of transient violations while what is measured here is the *total*
 cost.

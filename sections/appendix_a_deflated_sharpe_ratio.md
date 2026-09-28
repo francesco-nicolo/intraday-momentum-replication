@@ -105,13 +105,11 @@ comparison is in §7 (T1).
 
 Under $H_0$ the $N$ sample Sharpes are draws from a distribution with mean zero and standard
 deviation $\sigma$. The expected value of their maximum is a problem in extreme value theory: for
-Gaussian draws the maximum converges to a Gumbel distribution, and the closed-form approximation
-is
+Gaussian draws the maximum converges to a Gumbel distribution, and the closed-form approximation (Bailey and López de Prado, 2014, eq. 5) is
 
 $$SR_0 = \sigma\left[(1-\gamma)\,\Phi^{-1}\!\left(1 - \frac{1}{N}\right) + \gamma\,\Phi^{-1}\!\left(1 - \frac{1}{N e}\right)\right]$$
 
-with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The two terms are the quantiles
-corresponding to the mode and the mean of the limiting Gumbel, combined with weight $\gamma$. For
+with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The first quantile is the mode of the limiting Gumbel and the gap between the two is its scale; the mean of a Gumbel is its mode plus $\gamma$ times its scale, which is the expression in brackets. For
 $N = 16$ the quantity in brackets is 1.8005.
 
 The relevant property is that $\Phi^{-1}(1-1/N)$ grows like $\sqrt{2\ln N}$, more slowly even than
@@ -147,7 +145,7 @@ trials is below 16, which would lower $SR_0$.
 
 **Main specification (conservative).** Under $H_0$ the relevant dispersion is the standard error
 of the sample Sharpe of one independent trial whose true Sharpe is zero, $1/\sqrt{n} = 0.02230$.
-The main specification plugs the observed Sharpe into the general expression instead,
+The main specification plugs the observed Sharpe into the general expression for independent returns (Lo, 2002) instead,
 
 $$\text{SE}(\widehat{SR}_d) \approx \sqrt{\frac{1 + \widehat{SR}_d^{\,2}/2}{n}} = 0.02234$$
 
@@ -421,7 +419,7 @@ measured above are enough to check that it has been read correctly.
 
 LEAN samples the performance series once per calendar night, not once per session (`BaseResultsHandler.Sample`, whose value is $(E_t - E_{t-1})/E_{t-1}$, so a night with no trading contributes an exact zero), and annualizes that series with 252 (`PortfolioStatistics`: `AnnualVariance(listPerformance, tradingDaysPerYear)`).
 
-The series it works on is therefore ours **diluted**: 2,011 real returns spread over 2,922 observations, the other 911 being zero, so $m_{\text{cal}} = m/\kappa$ and $s_{\text{cal}} = s/\sqrt{\kappa}$ with $\kappa = 2922/2012 = 1.45229$. The risk-free rate is subtracted as an annual figure and does not rescale with $\kappa$, so the reported Sharpe is
+The series it works on is therefore ours **diluted**: 2,011 real returns spread over 2,922 observations, the other 911 being zero, so $m_{\text{cal}} = m/\kappa$ and $s_{\text{cal}} = s/\sqrt{\kappa}$ with $\kappa = 2922/2012 = 1.45229$, where $m = S_1/n$ and $s = \sqrt{S_2/n - m^2}$ are the trading-day moments of §A.6.1, from the accumulators of §A.5. The risk-free rate is subtracted as an annual figure and does not rescale with $\kappa$, so the reported Sharpe is
 
 $$SR_{QC} = \frac{(1 + m/\kappa)^{252} - 1 - r_f}{\sqrt{252/\kappa}\;s}$$
 
@@ -446,17 +444,21 @@ The check is that this reproduces what QuantConnect prints, from our moments and
 | annualized volatility, $\sqrt{252}\,s/\sqrt{\kappa}$ | 0.0904 | 0.09 |
 | Sharpe, LEAN's convention, $r_f = 2.70\%$ | 1.078 | 1.075 |
 | Probabilistic Sharpe Ratio | 49.8% | 49.490% |
-| *(for contrast)* Sharpe on trading days, $\widehat{SR}_d\sqrt{252}$, linear | 1.38 | — |
 
 The first line has no free parameter: $\kappa$ comes from the calendar and $s$ from the
 measurement. The second and third add only the platform's risk-free rate, and the third runs LEAN's
 own routine (`Statistics.ProbabilisticSharpeRatio`) on the same diluted moments, landing within
-half a point of the printed value; together they settle the reading of the convention. The fourth
-line is not a reproduction but a comparison: the same run annualized on the days it actually
-traded, which is what the printed figure understates, here and for every QC Sharpe in this report.
-It uses the linear annualization, so it is not on the convention of the lines above; under LEAN's
-compounded form the same series on trading days would give 1.52. Either number makes the point.
-The QC figures are quoted as printed throughout, for comparability with the paper.
+half a point of the printed value; together they settle the reading of the convention. Note that the Sharpe tested inside that routine is the linear one, 0.999, not the 1.078 printed: the PSR works on the arithmetic mean per observation.
+
+The same run therefore carries several Sharpe ratios, which differ only in the series and in how the mean is annualized. With $\bar r$ and $\sigma$ the mean and standard deviation per observation of the series used,
+
+$$SR = \frac{A(\bar r) - r_f}{\sqrt{252}\;\sigma}, \qquad A(\bar r) = (1 + \bar r)^{252} - 1 \ \text{(compounded)} \quad \text{or} \quad 252\,\bar r \ \text{(linear)},$$
+
+where on LEAN's calendar series $\bar r = m/\kappa$ and $\sigma = s/\sqrt{\kappa}$, and on trading days $\bar r = m$ and $\sigma = s$:
+
+[Table: Sharpe ratio of S4′ tight under each convention]
+
+Read by columns, the table shows where the gap comes from. The dilution divides the mean by $\kappa$ but the standard deviation only by $\sqrt{\kappa}$: on LEAN's series the annual return falls from 18.56% to 12.44%, below even the 17.82% a year the run actually compounded (T2), while the volatility falls only from 10.89% to 9.04%, and the same $r_f$ weighs more on the smaller return. This is why the printed figure understates the Sharpe of the days the run actually traded, here and for every QC Sharpe in this report. The QC figures are quoted as printed throughout, for comparability with the paper. The Deflated Sharpe Ratio of this appendix uses none of these forms: its $\widehat{SR}_d = 0.08694$ is per observation on trading days, at the report's $r_f = 2\%$, and does not depend on the sampling convention (§A.4.4).
 
 Two details are needed to reproduce the PSR, and they matter for §7. LEAN sets its
 `benchmarkSharpeRatio` to $1/\sqrt{252}$, that is, it measures the PSR against a **Sharpe of 1**

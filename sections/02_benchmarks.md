@@ -173,8 +173,7 @@ second digit.
 In words: in this window, anyone long SPY from 9:31 to 15:58 every day, without leverage and
 commissions but paying the bid-ask spread, would have ended roughly flat after eight years. Trading
 hours, on their own, earned about nothing: the 13.0% a year that SPY delivered (166.4%, paper, §3.2)
-accrued almost entirely overnight, the segment this benchmark does not hold, in line with a
-well-documented pattern in US equities (Cooper, Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+accrued almost entirely overnight, the segment this benchmark does not hold.
 This is why the benchmark loses: with nothing to earn during the session, what it pays in
 commissions and leverage drag is a net loss, and whatever the strategy earns over it has to come
 from its signal.

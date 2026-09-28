@@ -316,3 +316,18 @@ Sessions with at least one trade, 1,197 in total; one-sample $t$-test of the mea
 | S4 tight | 259.2 | 208.2 | 164.4 | 2.088 | 8.4% | 1.036 |
 
 The 0.25 and 0.5 bps columns of S4′ are **predicted** by the model of T6, not measured: for the constructed cells only the 0 bps run exists. The lead of S4′ tight over S4 tight is +0.03339 in log return over eight years (T8), that is, 3.4% more final capital, about 0.4% per year.
+
+---
+
+## Appendix A
+
+### Sharpe ratio of S4′ tight under each convention
+
+| series | annualization of the mean | annual return | annual volatility | Sharpe |
+|---|---|---|---|---|
+| calendar (LEAN) | compounded | 12.44% | 9.04% | 1.078 |
+| calendar (LEAN) | linear | 11.73% | 9.04% | 0.999 |
+| trading days | compounded | 18.56% | 10.89% | 1.456 |
+| trading days | linear | 17.03% | 10.89% | 1.316 |
+
+S4′ tight, from the trading-day moments of §A.6.1 ($m = 6.7596\cdot 10^{-4}$, $s = 6.8622\cdot 10^{-3}$) and $\kappa = 1.45229$; $r_f = 2.70\%$ in every row, LEAN's rate. The first row is the Sharpe LEAN prints (1.075), the second the one tested inside its PSR; the last two measure the same run on the days it actually traded.

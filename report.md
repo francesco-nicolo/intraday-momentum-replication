@@ -387,8 +387,7 @@ second digit.
 In words: in this window, anyone long SPY from 9:31 to 15:58 every day, without leverage and
 commissions but paying the bid-ask spread, would have ended roughly flat after eight years. Trading
 hours, on their own, earned about nothing: the 13.0% a year that SPY delivered (166.4%, paper, §3.2)
-accrued almost entirely overnight, the segment this benchmark does not hold, in line with a
-well-documented pattern in US equities (Cooper, Cliff and Gulen, 2008; Lou, Polk and Skouras, 2019).
+accrued almost entirely overnight, the segment this benchmark does not hold.
 This is why the benchmark loses: with nothing to earn during the session, what it pays in
 commissions and leverage drag is a net loss, and whatever the strategy earns over it has to come
 from its signal.
@@ -982,15 +981,13 @@ other filter only (§8).
 
 A prediction of this analysis that the data did not bear out, reported as such.
 
-Under `tight` the exit threshold sits at or above the level that authorized the entry, so the
-condition should become true early in the life of most positions: the cadence would then stop
+Under `tight` the exit threshold typically sits at or above the level that authorized the entry (§4.3), so the condition should become true early in the life of most positions: the cadence would then stop
 measuring the readiness to react to a reversal and measure instead how long a position the
 threshold has already condemned is allowed to run, half an hour vs. five minutes. If the gap
 between S0 and S1 were entirely due to this, then under `loose`, where the threshold is genuinely
 distant and fires only on a real retracement, the gap should close.
 
-It does not close: it goes from 0.06508 to 0.04853, so **the zero-distance threshold explains 25% of
-it** and the rest is genuine. The 5-minute monitoring really is costly, and the paper's qualitative
+It does not close: it goes from 0.06508 to 0.04853, **a reduction of 25%**, which cannot be attributed to the distance alone (see below). The 5-minute monitoring really is costly, and the paper's qualitative
 conclusion survives the threshold, even against the alternative this analysis was testing.
 
 The paper does not stop at recording the phenomenon, however: it gives it a mechanism. "*VWAP is a
@@ -1010,8 +1007,7 @@ mechanism: the cost is smaller precisely where the VWAP is in charge.
 **It is not such evidence.** The two variants differ not only in *which* term binds but also in
 *how far* the threshold is from the entry level, and a more distant threshold is crossed less often
 whatever the quantity that defines it. The smaller cost under `loose` is what one would predict
-from the distance alone, without ever mentioning the VWAP: the two effects push in the same
-direction and cannot be separated with these cells. Add that under `tight` the VWAP is not absent
+from the distance alone, without ever mentioning the VWAP: distance and binding term change together between the two variants, and these cells cannot separate them. Add that under `tight` the VWAP is not absent
 (when, on a day of sustained rally, it rises above $UB$, it binds there too), and that the paper's
 mechanism concerns the *rate* of transient violations while what is measured here is the *total*
 cost.
@@ -1088,8 +1084,7 @@ of S1 is no longer a wash but a clear deterioration, and all four metrics of tha
 stated direction. **Costs do not overturn the paper's conclusion: they sharpen it.** It is the case
 in which the strategy most penalized by costs is also the one the paper identified as the weakest,
 and the coincidence is not accidental: S1 has 4,900 orders vs. the baseline's 3,594, that is,
-the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon
-as the cost rises.
+the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon as the cost rises (F3).
 
 ![F3. Decay under costs. The 0 bps baseline already includes IB commissions](figures/F3_net_profit_vs_slippage.png)
 
@@ -1102,10 +1097,11 @@ applies to itself in §A.3 — sixteen configurations searched, one reported —
 ranking over five groups. Applying it to one's own results and not to the ranking one is checking
 would make the severity selective, so it is applied here as well.
 
-The authors' own files answer it. Aggregating `DayOfTheWeek/Trades_Strat{2,3,4}_8y.csv` by entry
-date, with P&L net of the fee column, so that the several trades of one day count once and
-within-day correlation cannot inflate anything, and testing each weekday's mean session return
-against zero:
+The authors' own files answer it. The trade lists `DayOfTheWeek/Trades_Strat{2,3,4}_8y.csv` are turned into one return per session: the trades of each day are grouped by entry date, their P&L net of the fee column is summed, and the sum is divided by the equity at the start of that day, starting from 100,000. One observation per day rather than per trade, so that the several trades of one session, which are correlated, do not count as independent evidence. The sessions are then split by weekday, and for each weekday the test asks whether its mean return could be zero. With $n$ sessions of mean $\bar r$ and standard deviation $s$, the statistic is
+
+$$t = \frac{\bar r}{s/\sqrt{n}},$$
+
+the mean measured in units of its standard error, and $p$ is the probability of a $|t|$ at least that large if the true mean were zero (Student's $t$ with $n-1$ degrees of freedom, two-sided):
 
 ### Day-of-the-week on S4: mean session return by weekday
 
@@ -1118,11 +1114,7 @@ against zero:
 
 Sessions with at least one trade, 1,197 in total; one-sample $t$-test of the mean against zero, two-sided. The same computation on S2 and S3 returns the same ordering, with Friday at $p = 0.0013$ and $p = 0.0007$ respectively.
 
-The ordering reproduces the paper's exactly. Friday's mean carries $p = 0.0011$ on its own and
-0.0054 once multiplied by the five groups the maximum was selected from, so it stands at the 1%
-level under the most conservative correction available; Monday is indistinguishable from zero
-($p = 0.44$), consistent with the paper's reading of it as the weakest session. The ranking
-survives the standard this report applies to itself, and that is a result in the paper's favor.
+The ordering reproduces the paper's exactly. Friday has the largest $t$, 3.31, and $p = 0.0011$. Taken alone that would be strong, but Friday was not chosen in advance: it is the best of five, and the best of five has five chances to look significant by luck. The Bonferroni correction accounts for this by multiplying $p$ by the number of groups, which bounds the probability that any of the five reaches that level by chance: $5 \times 0.0011 = 0.0054$, still below 1%. Monday is indistinguishable from zero ($p = 0.44$), consistent with the paper's reading of it as the weakest session. What survives the standard this report applies to itself is therefore the strength of Friday, on which the paper's reading rests; the gaps among Wednesday, Thursday and Tuesday are not tested. It is a result in the paper's favor.
 
 One check falls out of the same reconstruction at no cost. Compounding those session returns from
 the trade files alone, with no backtest involved, returns cumulative eight-year figures of
@@ -1486,13 +1478,11 @@ comparison is in §7 (T1).
 
 Under $H_0$ the $N$ sample Sharpes are draws from a distribution with mean zero and standard
 deviation $\sigma$. The expected value of their maximum is a problem in extreme value theory: for
-Gaussian draws the maximum converges to a Gumbel distribution, and the closed-form approximation
-is
+Gaussian draws the maximum converges to a Gumbel distribution, and the closed-form approximation (Bailey and López de Prado, 2014, eq. 5) is
 
 $$SR_0 = \sigma\left[(1-\gamma)\,\Phi^{-1}\!\left(1 - \frac{1}{N}\right) + \gamma\,\Phi^{-1}\!\left(1 - \frac{1}{N e}\right)\right]$$
 
-with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The two terms are the quantiles
-corresponding to the mode and the mean of the limiting Gumbel, combined with weight $\gamma$. For
+with $\gamma \approx 0.5772$ the Euler-Mascheroni constant. The first quantile is the mode of the limiting Gumbel and the gap between the two is its scale; the mean of a Gumbel is its mode plus $\gamma$ times its scale, which is the expression in brackets. For
 $N = 16$ the quantity in brackets is 1.8005.
 
 The relevant property is that $\Phi^{-1}(1-1/N)$ grows like $\sqrt{2\ln N}$, more slowly even than
@@ -1528,7 +1518,7 @@ trials is below 16, which would lower $SR_0$.
 
 **Main specification (conservative).** Under $H_0$ the relevant dispersion is the standard error
 of the sample Sharpe of one independent trial whose true Sharpe is zero, $1/\sqrt{n} = 0.02230$.
-The main specification plugs the observed Sharpe into the general expression instead,
+The main specification plugs the observed Sharpe into the general expression for independent returns (Lo, 2002) instead,
 
 $$\text{SE}(\widehat{SR}_d) \approx \sqrt{\frac{1 + \widehat{SR}_d^{\,2}/2}{n}} = 0.02234$$
 
@@ -1802,7 +1792,7 @@ measured above are enough to check that it has been read correctly.
 
 LEAN samples the performance series once per calendar night, not once per session (`BaseResultsHandler.Sample`, whose value is $(E_t - E_{t-1})/E_{t-1}$, so a night with no trading contributes an exact zero), and annualizes that series with 252 (`PortfolioStatistics`: `AnnualVariance(listPerformance, tradingDaysPerYear)`).
 
-The series it works on is therefore ours **diluted**: 2,011 real returns spread over 2,922 observations, the other 911 being zero, so $m_{\text{cal}} = m/\kappa$ and $s_{\text{cal}} = s/\sqrt{\kappa}$ with $\kappa = 2922/2012 = 1.45229$. The risk-free rate is subtracted as an annual figure and does not rescale with $\kappa$, so the reported Sharpe is
+The series it works on is therefore ours **diluted**: 2,011 real returns spread over 2,922 observations, the other 911 being zero, so $m_{\text{cal}} = m/\kappa$ and $s_{\text{cal}} = s/\sqrt{\kappa}$ with $\kappa = 2922/2012 = 1.45229$, where $m = S_1/n$ and $s = \sqrt{S_2/n - m^2}$ are the trading-day moments of §A.6.1, from the accumulators of §A.5. The risk-free rate is subtracted as an annual figure and does not rescale with $\kappa$, so the reported Sharpe is
 
 $$SR_{QC} = \frac{(1 + m/\kappa)^{252} - 1 - r_f}{\sqrt{252/\kappa}\;s}$$
 
@@ -1823,21 +1813,34 @@ is the reproduction.
 The check is that this reproduces what QuantConnect prints, from our moments and nothing else:
 
 | quantity | from our moments | reported by QC |
-|:---------------------------------------------------------------|--------------------:|------------------:|
+|:---|---:|---:|
 | annualized volatility, $\sqrt{252}\,s/\sqrt{\kappa}$ | 0.0904 | 0.09 |
 | Sharpe, LEAN's convention, $r_f = 2.70\%$ | 1.078 | 1.075 |
 | Probabilistic Sharpe Ratio | 49.8% | 49.490% |
-| *(for contrast)* Sharpe on trading days, $\widehat{SR}_d\sqrt{252}$, linear | 1.38 | — |
 
 The first line has no free parameter: $\kappa$ comes from the calendar and $s$ from the
 measurement. The second and third add only the platform's risk-free rate, and the third runs LEAN's
 own routine (`Statistics.ProbabilisticSharpeRatio`) on the same diluted moments, landing within
-half a point of the printed value; together they settle the reading of the convention. The fourth
-line is not a reproduction but a comparison: the same run annualized on the days it actually
-traded, which is what the printed figure understates, here and for every QC Sharpe in this report.
-It uses the linear annualization, so it is not on the convention of the lines above; under LEAN's
-compounded form the same series on trading days would give 1.52. Either number makes the point.
-The QC figures are quoted as printed throughout, for comparability with the paper.
+half a point of the printed value; together they settle the reading of the convention. Note that the Sharpe tested inside that routine is the linear one, 0.999, not the 1.078 printed: the PSR works on the arithmetic mean per observation.
+
+The same run therefore carries several Sharpe ratios, which differ only in the series and in how the mean is annualized. With $\bar r$ and $\sigma$ the mean and standard deviation per observation of the series used,
+
+$$SR = \frac{A(\bar r) - r_f}{\sqrt{252}\;\sigma}, \qquad A(\bar r) = (1 + \bar r)^{252} - 1 \ \text{(compounded)} \quad \text{or} \quad 252\,\bar r \ \text{(linear)},$$
+
+where on LEAN's calendar series $\bar r = m/\kappa$ and $\sigma = s/\sqrt{\kappa}$, and on trading days $\bar r = m$ and $\sigma = s$:
+
+### Sharpe ratio of S4′ tight under each convention
+
+| series | annualization of the mean | annual return | annual volatility | Sharpe |
+|:---------------------|:------------------------------|-----------------:|----------------------:|----------:|
+| calendar (LEAN) | compounded | 12.44% | 9.04% | 1.078 |
+| calendar (LEAN) | linear | 11.73% | 9.04% | 0.999 |
+| trading days | compounded | 18.56% | 10.89% | 1.456 |
+| trading days | linear | 17.03% | 10.89% | 1.316 |
+
+S4′ tight, from the trading-day moments of §A.6.1 ($m = 6.7596\cdot 10^{-4}$, $s = 6.8622\cdot 10^{-3}$) and $\kappa = 1.45229$; $r_f = 2.70\%$ in every row, LEAN's rate. The first row is the Sharpe LEAN prints (1.075), the second the one tested inside its PSR; the last two measure the same run on the days it actually traded.
+
+Read by columns, the table shows where the gap comes from. The dilution divides the mean by $\kappa$ but the standard deviation only by $\sqrt{\kappa}$: on LEAN's series the annual return falls from 18.56% to 12.44%, below even the 17.82% a year the run actually compounded (T2), while the volatility falls only from 10.89% to 9.04%, and the same $r_f$ weighs more on the smaller return. This is why the printed figure understates the Sharpe of the days the run actually traded, here and for every QC Sharpe in this report. The QC figures are quoted as printed throughout, for comparability with the paper. The Deflated Sharpe Ratio of this appendix uses none of these forms: its $\widehat{SR}_d = 0.08694$ is per observation on trading days, at the report's $r_f = 2\%$, and does not depend on the sampling convention (§A.4.4).
 
 Two details are needed to reproduce the PSR, and they matter for §7. LEAN sets its
 `benchmarkSharpeRatio` to $1/\sqrt{252}$, that is, it measures the PSR against a **Sharpe of 1**
@@ -1967,11 +1970,7 @@ Bailey, D. H., and M. López de Prado (2014). The deflated Sharpe ratio: correct
 bias, backtest overfitting, and non-normality. *The Journal of Portfolio Management*, 40(5),
 94-107.
 
-Cooper, M. J., M. T. Cliff, and H. Gulen (2008). Return differences between trading and
-non-trading hours: like night and day. SSRN Working Paper 1004081.
-
-Lou, D., C. Polk, and S. Skouras (2019). A tug of war: overnight versus intraday expected returns.
-*Journal of Financial Economics*, 134(1), 192-213.
+Lo, A. W. (2002). The statistics of Sharpe ratios. *Financial Analysts Journal*, 58(4), 36-52.
 
 Zarattini, C., A. Aziz, and A. Barbon (2024). Beat the market: an effective intraday momentum
 strategy for S&P500 ETF (SPY). Swiss Finance Institute Research Paper No. 24-97, SSRN 4824172.

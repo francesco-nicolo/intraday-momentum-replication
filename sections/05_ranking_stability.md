@@ -29,8 +29,7 @@ of S1 is no longer a wash but a clear deterioration, and all four metrics of tha
 stated direction. **Costs do not overturn the paper's conclusion: they sharpen it.** It is the case
 in which the strategy most penalized by costs is also the one the paper identified as the weakest,
 and the coincidence is not accidental: S1 has 4,900 orders vs. the baseline's 3,594, that is,
-the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon
-as the cost rises.
+the highest $w_{sum}$ of the sixteen configurations, so it is the row that decays fastest as soon as the cost rises (F3).
 
 [Figure F3]
 
@@ -43,18 +42,15 @@ applies to itself in §A.3 — sixteen configurations searched, one reported —
 ranking over five groups. Applying it to one's own results and not to the ranking one is checking
 would make the severity selective, so it is applied here as well.
 
-The authors' own files answer it. Aggregating `DayOfTheWeek/Trades_Strat{2,3,4}_8y.csv` by entry
-date, with P&L net of the fee column, so that the several trades of one day count once and
-within-day correlation cannot inflate anything, and testing each weekday's mean session return
-against zero:
+The authors' own files answer it. The trade lists `DayOfTheWeek/Trades_Strat{2,3,4}_8y.csv` are turned into one return per session: the trades of each day are grouped by entry date, their P&L net of the fee column is summed, and the sum is divided by the equity at the start of that day, starting from 100,000. One observation per day rather than per trade, so that the several trades of one session, which are correlated, do not count as independent evidence. The sessions are then split by weekday, and for each weekday the test asks whether its mean return could be zero. With $n$ sessions of mean $\bar r$ and standard deviation $s$, the statistic is
+
+$$t = \frac{\bar r}{s/\sqrt{n}},$$
+
+the mean measured in units of its standard error, and $p$ is the probability of a $|t|$ at least that large if the true mean were zero (Student's $t$ with $n-1$ degrees of freedom, two-sided):
 
 [Table: Day-of-the-week on S4: mean session return by weekday]
 
-The ordering reproduces the paper's exactly. Friday's mean carries $p = 0.0011$ on its own and
-0.0054 once multiplied by the five groups the maximum was selected from, so it stands at the 1%
-level under the most conservative correction available; Monday is indistinguishable from zero
-($p = 0.44$), consistent with the paper's reading of it as the weakest session. The ranking
-survives the standard this report applies to itself, and that is a result in the paper's favor.
+The ordering reproduces the paper's exactly. Friday has the largest $t$, 3.31, and $p = 0.0011$. Taken alone that would be strong, but Friday was not chosen in advance: it is the best of five, and the best of five has five chances to look significant by luck. The Bonferroni correction accounts for this by multiplying $p$ by the number of groups, which bounds the probability that any of the five reaches that level by chance: $5 \times 0.0011 = 0.0054$, still below 1%. Monday is indistinguishable from zero ($p = 0.44$), consistent with the paper's reading of it as the weakest session. What survives the standard this report applies to itself is therefore the strength of Friday, on which the paper's reading rests; the gaps among Wednesday, Thursday and Tuesday are not tested. It is a result in the paper's favor.
 
 One check falls out of the same reconstruction at no cost. Compounding those session returns from
 the trade files alone, with no backtest involved, returns cumulative eight-year figures of

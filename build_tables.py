@@ -1017,6 +1017,31 @@ def bold(text, flag):
     return f"**{text}**" if flag else text
 
 
+def build_sharpe_conventions():
+    """§A.8: the Sharpe ratio of S4' tight under each convention, from the trading-day moments.
+
+    The four annual forms differ only in the series (LEAN's calendar series, mean m/kappa and
+    standard deviation s/sqrt(kappa), or trading days, m and s) and in how the mean is annualized
+    (compounded or linear). All rows at LEAN's rate, so that they compare like for like.
+    """
+    r = DSR_RAW
+    m, s, k, rf = r["m"], r["s"], r["kappa"], RF_LEAN
+    head = "### Sharpe ratio of S4′ tight under each convention"
+    L = [head, "",
+         "| series | annualization of the mean | annual return | annual volatility | Sharpe |",
+         "|---|---|---|---|---|"]
+    for series, rbar, sig in (("calendar (LEAN)", m / k, s / math.sqrt(k)), ("trading days", m, s)):
+        vol = math.sqrt(252) * sig
+        for form, ann in (("compounded", (1 + rbar) ** 252 - 1), ("linear", 252 * rbar)):
+            L.append(f"| {series} | {form} | {fmt(100 * ann, 2)}% | {fmt(100 * vol, 2)}% | "
+                     f"{fmt((ann - rf) / vol, 3)} |")
+    L += ["", f"S4′ tight, from the trading-day moments of §A.6.1 ($m = 6.7596\\cdot 10^{{-4}}$, "
+          f"$s = 6.8622\\cdot 10^{{-3}}$) and $\\kappa = {fmt(k, 5)}$; $r_f = {fmt(100 * rf, 2)}\\%$ in every "
+          f"row, LEAN's rate. The first row is the Sharpe LEAN prints (1.075), the second the one tested "
+          f"inside its PSR; the last two measure the same run on the days it actually traded."]
+    return "\n".join(L)
+
+
 def build_dow():
     """§5.1: the paper's weekday ranking, tested by session and corrected for the five groups."""
     head = "### Day-of-the-week on S4: mean session return by weekday"
@@ -1141,6 +1166,8 @@ def main():
         build_dow(),
         "---\n\n## §6. S4′",
         build_t11(df, prime),
+        "---\n\n## Appendix A",
+        build_sharpe_conventions(),
     ]
     supplementary = [
         SUPPLEMENTARY_HEADER,
